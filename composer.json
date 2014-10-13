@@ -1,0 +1,21 @@
+{
+    "name": "amilna/yii2-iyo",
+    "description": "an Integration of Yii & Openlayers to provide map services and user friendly mapping interface",
+    "type": "yii2-extension",
+    "keywords": ["yii2","extension","map","openlayers"],
+    "license": "BSD-2-Clause",
+    "authors": [
+        {
+            "name": "Satrio Arditama",
+            "email": "iyo@amilna.com"
+        }
+    ],
+    "require": {
+        "yiisoft/yii2": "*"
+    },
+    "autoload": {
+        "psr-4": {
+            "amilna\\iyo\\": ""
+        }
+    }
+}

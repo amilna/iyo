@@ -57,7 +57,8 @@ add in modules section of main config
 	],
 	'iyo' => [
         'class' => 'amilna\iyo\Module',
-        'userClass' =>  'dektrium\user\models\User',//'common\models\User',                            	    'geom_col'=>'the_geom'
+        'userClass' =>  'dektrium\user\models\User',//'common\models\User',
+        'geom_col'=>'the_geom'
         /* see vendor/amilna/yii2-iyo/Module.php for more options */ 
     ],
 ```

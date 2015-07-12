@@ -2,6 +2,10 @@ IYO
 ===
 Integration of Yii and OpenLayers
 
+Require
+-------
+gdal-bin, postgis, proj, libmapnik2, mapnik-utils, nodejs
+
 Installation
 ------------
 

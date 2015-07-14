@@ -97,15 +97,14 @@
 				<div class="iyo-layer-tools-editor iyo-tool" title="<?= Yii::t("app","Edit layer, add or edit feature in this layer") ?>"><i class="glyphicon glyphicon-pencil"></i></div>
 				<div class="iyo-layer-tools-drag iyo-tool" title="<?= Yii::t("app","Layer Position, drag to change position") ?>"><i class="glyphicon glyphicon-resize-vertical"></i></div>			
 			</div>			
-			<div class="iyo-layer-tools-def noprint">
-				<!--<div class="iyo-layer-tools-visibility iyo-tool" title="<?= Yii::t("app","Layer Visibility") ?>"><i class="glyphicon glyphicon-eye-open"></i></div>-->
+			<div class="iyo-layer-tools-def noprint">				
 				<div class="iyo-layer-tools-opacity" title="<?= Yii::t("app","Layer Opacity") ?>"></div>
 			</div>
 		</div>
 		<div class="iyo-layer-legend">
 			
 				<div class="iyo-layer-tools-visibility noprint pull-left" title="<?= Yii::t("app","Layer Visibility") ?>"><i class="glyphicon glyphicon-eye-open"></i></div>
-				<div class="iyo-layer-tools-seemore noprint pull-right" title="<?= Yii::t("app","More") ?>"><i class="glyphicon glyphicon-menu-hamburger"></i></div>
+				<div class="iyo-layer-tools-seemore noprint pull-right" title="<?= Yii::t("app","More") ?>"><i class="glyphicon glyphicon-chevron-up"></i></div>
 				<div class="iyo-layer-name">{name}</div>				
 			<div class="iyo-layer-classes">
 				

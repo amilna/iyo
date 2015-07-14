@@ -48,7 +48,7 @@
 					'name'=>'Ini cuma layer sample yang dibuat dengan konfigurasi xml melalui folder xml',
 					'type'=>'tile',					
 					'geomtype'=>'Polygon',
-					'urls'=>["http://".$module->ipaddress.":".$module->ports[0]."/world_style/{z}/{x}/{y}.png"],
+					'urls'=>["http".(!empty($module->sslKey)?"s":"")."://".($module->proxyhost?$module->prroxyhost:($module->ipaddress.":".$module->ports[0]))."/world_style/{z}/{x}/{y}.png"],
 					'fields'=>[
 						[
 							'name'=>'NAME',

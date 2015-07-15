@@ -69,5 +69,62 @@ class PageController extends \amilna\blog\controllers\PageController
 			]);
 		}	
     }
+    
+    public function actionCreate()
+    {
+        $model = new StaticPage();
+        $model->time = date("Y-m-d H:i:s");	        
+        $model->isdel = 0;
+
+        $post = Yii::$app->request->post();
+		if (isset($post['StaticPage']['tags']))
+		{
+			if (is_array($post['StaticPage']['tags']))
+			{
+				$post['StaticPage']['tags'] = implode(",",$post['StaticPage']['tags']);
+			}	
+		}
+		
+        if ($model->load($post) && $model->save()) {
+            return $this->redirect(['view', 'id' => $model->id]);
+        } else {
+            return $this->render('create', [
+                'model' => $model,
+            ]);
+        }
+    }
+    
+    public function actionUpdate($id)
+    {
+        $model = $this->findModel($id);
+		$model->tags = !empty($model->tags)?explode(",",$model->tags):[];
+		
+		$post = Yii::$app->request->post();
+		if (isset($post['StaticPage']['tags']))
+		{
+			if (is_array($post['StaticPage']['tags']))
+			{
+				$post['StaticPage']['tags'] = implode(",",$post['StaticPage']['tags']);
+			}	
+		}
+		
+        if ($model->load($post) && $model->save()) {
+            return $this->redirect(['view', 'id' => $model->id]);
+        } else {
+            return $this->render('update', [
+                'model' => $model,
+            ]);
+        }
+    }
+    
+    protected function findModel($id)
+    {
+        if (($model = StaticPage::findOne($id)) !== null) {
+            return $model;
+        } else {
+            throw new NotFoundHttpException('The requested page does not exist.');
+        }
+    }
+
  
 }

@@ -14,7 +14,7 @@ class Module extends \yii\base\Module
 	
 	public $ipaddress = '127.0.0.1';
 	public $ports = [1401,1402];
-	public $proxyhost = false; /* new hostname to use tms without port (ex: 'tms1.amilna.com'). Make sure to set proxy on apache 
+	public $proxyhosts = []; /* new hostname to use tms without port (ex: ['tms1.amilna.com','tms2.amilna.com']). Make sure to set proxy on apache 
 		see http://serverfault.com/questions/195611/how-do-i-redirect-subdomains-to-a-different-port-on-the-same-server
 		and http://stackoverflow.com/questions/6764852/proxying-with-ssl */
 	
@@ -23,6 +23,7 @@ class Module extends \yii\base\Module
 	
 	public $xmlipaddress = '127.0.0.1';
 	public $xmlports = [1403]; /* only used if nodejs */
+	public $xmlproxyhosts = []; /* new hostname to use tms without port (ex: ['tms3.amilna.com']) */
 	public $allowedips = ['127.0.0.1', '::1']; /* allowed ip to access xml url */
 		 
 	public $xmlDir = '@amilna/iyo/xml'; /* mapnik xml directory */

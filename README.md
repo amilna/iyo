@@ -63,6 +63,31 @@ add in modules section of main config
     ],
 ```
 
+add in components section of main config
+
+```
+    'components' => [        
+        'errorHandler' => [
+            'errorAction' => 'iyo/data/error',
+        ],  
+    ],
+
+```
+
+Set .htaccess
+
+```
+DirectoryIndex index.php
+
+RewriteEngine on
+RewriteBase /
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteCond $1 !^(index\.php)
+
+RewriteRule . index.php
+```
+
 Usage
 -----
 

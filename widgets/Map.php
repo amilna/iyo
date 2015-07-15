@@ -59,11 +59,11 @@ class Map extends Widget
 			
 			if ($module->xmlServer == 'nodejs')
 			{
-				$xmlUrl = 'http://'.$module->xmlipaddress.':'.$module->xmlports[0];	
+				$xmlUrl = "http".(!empty($module->sslKey)?"s":"")."://".(!empty($module->xmlproxyhosts)?$module->xmlproxyhosts[0]:($module->xmlipaddress.":".$module->xmlports[0]));				
 			}
 			else
 			{
-				$xmlUrl = 'http://127.0.0.1'.\Yii::getAlias('@web').'/iyo/layer/xml'; //if not use nodejs
+				$xmlUrl = "http".(!empty($module->sslKey)?"s":"")."://".$_SERVER['SERVER_NAME'].\yii\helpers\Url::toRoute('//iyo/layer/xml');
 			}			
 			
 			$cmd = 'node "'.$comDir.'/tilepin.js" "'.$xmlDir.'" "'.$pyFile.'" "'.$tileDir.'" "'.$ipaddr.'" "'.$portsStr.'" "'.$xmlUrl.'" "'.$module->maxZoomCache.'" '.(!empty($module->sslKey)?'"'.$module->sslKey.'"':'').' '.(!empty($module->sslCert)?'"'.$module->sslCert.'"':'');						

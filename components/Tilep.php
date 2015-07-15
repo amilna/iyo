@@ -276,11 +276,11 @@ class Tilep extends Component
 		{
 			if ($module->xmlServer == 'nodejs')
 			{
-				$tilep->xmlDir = "http://".$module->xmlipaddress.":".$module->xmlports[0];
+				$tilep->xmlDir = "http".(!empty($module->sslKey)?"s":"")."://".(!empty($module->xmlproxyhosts)?$module->xmlproxyhosts[0]:($module->xmlipaddress.":".$module->xmlports[0]));				
 			}
 			else
 			{
-				$tilep->xmlDir = "http://".$_SERVER['SERVER_NAME'].\yii\helpers\Url::toRoute('//iyo/layer/xml');
+				$tilep->xmlDir = "http".(!empty($module->sslKey)?"s":"")."://".$_SERVER['SERVER_NAME'].\yii\helpers\Url::toRoute('//iyo/layer/xml');
 			}	
 		}
 				

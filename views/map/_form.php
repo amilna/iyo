@@ -57,7 +57,7 @@ use kartik\datetime\DateTimePicker;
 						"minZoom":5,
 						"maxZoom":19,
 						"baseMaps":[
-							{"name":"Openstreet Map","source":"www.openstreetmap.org","url":"http:\/\/[a,b,c].tile. openstreetmap.org\/{z}\/{x}\/{y}.png"}
+							{"name" : "Openstreet Map" , "source" : "www.openstreetmap.org" , "url": "http:\/\/[a,b,c].tile.openstreetmap.org\/{z}\/{x}\/{y}.png"}
 						],
 						"baseIndex":0,
 						"layers":[							

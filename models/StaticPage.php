@@ -23,10 +23,7 @@ class StaticPage extends \amilna\iyo\StaticPage
 	{
 		$lists = [
 			/* example list of item alias for a field with name field */			
-			'status'=>[							
-						0=>Yii::t('app','Draft'),							
-						1=>Yii::t('app','Published'),
-						2=>Yii::t('app','Archived'),
+			'status'=>[													
 						3=>Yii::t('app','Draft'),							
 						4=>Yii::t('app','Published'),
 						5=>Yii::t('app','Archived'),

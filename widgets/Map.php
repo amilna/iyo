@@ -113,7 +113,7 @@ class Map extends Widget
 						
 						if ($module->tileServer == 'nodejs')
 						{
-							$this->options['layers'][$i]['urls'] = ["http".(!empty($module->sslKey)?"s":"")."://".($module->proxyhost?$module->proxyhost:$module->ipaddress.":".$module->ports[0])."/iyo".$layer->id."_".preg_replace('/[^a-zA-Z0-9]/','_',strtolower($layer->title))."/{z}/{x}/{y}.".(in_array($layer->data->type,[0,3])?'json':'png')];	
+							$this->options['layers'][$i]['urls'] = ["http".(!empty($module->sslKey)?"s":"")."://".(!empty($module->proxyhosts)?$module->proxyhosts[0]:$module->ipaddress.":".$module->ports[0])."/iyo".$layer->id."_".preg_replace('/[^a-zA-Z0-9]/','_',strtolower($layer->title))."/{z}/{x}/{y}.".(in_array($layer->data->type,[0,3])?'json':'png')];	
 						}
 						else
 						{
@@ -126,7 +126,7 @@ class Map extends Widget
 						{							
 							if ($module->tileServer == 'nodejs')
 							{
-								$this->options['layers'][$i]['urls'] = ["http".(!empty($module->sslKey)?"s":"")."://".($module->proxyhost?$module->proxyhost:$module->ipaddress.":".$module->ports[0])."/iyo".$layer->id."_".preg_replace('/[^a-zA-Z0-9]/','_',strtolower($layer->title))."/{z}/{x}/{y}.".(in_array($lconfigs[0]['type'],['geojson'])?'json':'png')];
+								$this->options['layers'][$i]['urls'] = ["http".(!empty($module->sslKey)?"s":"")."://".(!empty($module->proxyhosts)?$module->proxyhosts[0]:$module->ipaddress.":".$module->ports[0])."/iyo".$layer->id."_".preg_replace('/[^a-zA-Z0-9]/','_',strtolower($layer->title))."/{z}/{x}/{y}.".(in_array($lconfigs[0]['type'],['geojson'])?'json':'png')];
 							}
 							else
 							{

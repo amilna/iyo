@@ -16,7 +16,7 @@ use Yii;
  * @property string $time
  * @property integer $isdel
  */
-class StaticPage extends \amilna\iyo\StaticPage
+class StaticPage extends \amilna\blog\models\StaticPage
 {
     
 	public function itemAlias($list,$item = false,$bykey = false)

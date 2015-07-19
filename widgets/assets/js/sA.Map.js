@@ -1218,6 +1218,19 @@ sA.Map.prototype.initUiAttributes = function(f,layer) {
 				$("#" + map.sai.id +" .iyo-attributes-message").css("display","block");
 				$("#" + map.sai.id +" .iyo-attributes-fields").html("");
 			}
+			else
+			{
+				var messg = JSON.parse($("#iyo-template-uiattributemessage").text());
+				if (map.sai.isObj(messg.invalidInput))
+				{
+					alert(messg.invalidInput);	
+				}
+				else
+				{
+					alert("Save has failed!");	
+				}
+					
+			}
 			map.sai.unwait();
 											
 		},function(){map.sai.unwait();},[],'POST',data);
@@ -1266,6 +1279,19 @@ sA.Map.prototype.initUiAttributes = function(f,layer) {
 				
 				$("#" + map.sai.id +" .iyo-attributes-message").css("display","block");
 				$("#" + map.sai.id +" .iyo-attributes-fields").html("");
+			}
+			else			
+			{
+				var messg = JSON.parse($("#iyo-template-uiattributemessage").text());
+				if (map.sai.isObj(messg.deleteFailed))
+				{
+					alert(messg.deleteFailed);	
+				}
+				else
+				{
+					alert("Delete has failed!");	
+				}
+					
 			}
 			map.sai.unwait();
 											

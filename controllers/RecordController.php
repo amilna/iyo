@@ -267,7 +267,7 @@ class RecordController extends Controller
 				$datamodel = Data::findOne($data);	
 			}
 			
-			$res= false;		
+			$res= false;					
 			if (count($post) > 1 && $model->load(['Record'=>$rec]))
 			{
 				
@@ -298,10 +298,12 @@ class RecordController extends Controller
 						
 						$string = preg_replace(['/([0-9\-\.]+),([0-9\-\.]+)/','/\[/','/\]/'], ['$1 $2','(',')'], $string);
 						$string = str_replace(['((','))','),('], ['(',')',','], $string);
-						if (substr($tipe,-3) == 'GON')
+						
+						//if (substr($tipe,-3) == 'GON')
+						if ($tipe == 'MULTIPOLYGON')
 						{
 							$string = '('.$string.')';	
-						}						
+						}										
 						
 						//die($string);						
 						
@@ -330,7 +332,7 @@ class RecordController extends Controller
 						//$model->$key = $val;
 					}
 					
-					if( $key != "_csrf")
+					if( $key != "_csrf" && !(empty($val) || $val == 'undefined'))
 					{
 						//$model->$key = 	is_numeric($val)?(is_int($val)?intval($val):floatval($val)):$val;	
 					//	$model->$key = $val;
@@ -343,39 +345,35 @@ class RecordController extends Controller
 				$geom_col = $module->geom_col;
 				$model->$geom_col = $geom1;		
 				
-				//print_r($model->attributes);
-				//die($model->isNewRecord." \r".$geom1." \r".$geom2);
-				try {
-					$res = $model->save();
+				if ($model->validate()) {					
+					try {
+						$res = $model->save();
+					}
+					catch (yii\db\Exception $e)
+					{
+						$model->$geom_col = $geom2;			
+						$res = $model->save();
+					}
+				} else {					
+					$err = $model->errors;
 				}
-				catch (yii\db\Exception $e)
-				{
-					$model->$geom_col = $geom2;			
-					$res = $model->save();
-				}
-				
-				/*	
-				if (!$model->save())
-				{
-					$model->$geom_col = $geom2;			
-					$res = $model->save();
-				}
-				else
-				{
-					$res= true;			
-				}
-				*/ 
+								
 			}
 			elseif (count($post) == 1 && $model)
 			{
 				$res = $model->delete();
 			}
 			
-			$err = $model->getErrors();
+			$err = $model->getErrors();			
 			if (!empty($rrr))
 			{
 				$errors = array_merge($errors,$err);	
 			}
+			else
+			{
+				shell_exec("rm -R ".\Yii::getAlias($module->baseDir)."/*");	
+			}
+			
 			/*
 			if ($res)
 			{
@@ -385,7 +383,7 @@ class RecordController extends Controller
 				$page = curl_exec($c);
 				curl_close($c);	
 			}
-			*/ 
+			*/
 		} 
 				
 		return json_encode(['status'=>$res,'error'=>$errors,'gid'=>$model->gid]);

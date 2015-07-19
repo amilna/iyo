@@ -305,7 +305,7 @@ class FormatData extends Component
 				
 				unset($metadata['isappend']);
 								
-				shell_exec("rm -R ".\Yii::getAlias($this->baseDir)."/*");				
+				shell_exec("rm -R ".\Yii::getAlias($this->baseDir)."/*");
 				
 				$metadata = json_encode($metadata);																								
 				

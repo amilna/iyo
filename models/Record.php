@@ -72,6 +72,7 @@ class Record extends \yii\db\ActiveRecord
 		$table = self::getTableSchema();
 		$types = [];
         $lengths = [];
+        $dates = [];
         foreach ($table->columns as $column) {
             
             if ($column->name == $geom_col)
@@ -105,6 +106,7 @@ class Record extends \yii\db\ActiveRecord
 					case Schema::TYPE_DATETIME:
 					case Schema::TYPE_TIMESTAMP:
 						$types['safe'][] = $column->name;
+						$dates[$column->type][] = $column->name;
 						break;
 					default: // strings
 						if ($column->size > 0) {
@@ -122,6 +124,16 @@ class Record extends \yii\db\ActiveRecord
         }
         foreach ($lengths as $length => $columns) {            
             $rules[] = [$columns,'string', 'max' => $length];
+        }
+        foreach ($dates as $ctype => $columns) {            
+			if ($ctype == Schema::TYPE_DATE)
+			{
+				$rules[] = [$columns,'date', 'format' => 'yyyy-M-d'];
+			}
+			else
+			{
+				$rules[] = [$columns,'time', 'format' => 'yyyy-M-d H:m:s'];
+			}
         }
 		
         // Unique indexes rules

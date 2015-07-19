@@ -145,6 +145,13 @@
 	<a id="clean-{cid}" class="btn btn-warning pull-right"><?=Yii::t("app","Clean")?></a>			
 </div>
 
+<div id="iyo-template-uiattributemessage" class="noprint hidden">
+	{
+		"invalidInput":"<?= Yii::t("app","Invalid input, please check your input values!")?>",
+		"deleteFailed":"<?= Yii::t("app","Delete has failed, try again later!")?>"		
+	}
+</div>
+
 <div id="iyo-template-changeconfirmbutton" class="noprint hidden">
 	<p><?=Yii::t("app","There are records have been modified, but not yet saved. Please confirm to save or cancel those changes.")?></p>
 	<div class="row">

@@ -44,10 +44,10 @@ class Map extends \yii\db\ActiveRecord
             [['title', 'description', 'config'], 'required'],
             [['remarks', 'config'], 'string'],
             [['author_id', 'status', 'isdel'], 'integer'],
-            [['time'], 'safe'],
+            [['time','tags'], 'safe'],
             [['title'], 'string', 'max' => 65],
             [['description'], 'string', 'max' => 155],
-            [['tags'], 'string', 'max' => 255]
+            //[['tags'], 'string', 'max' => 255]
         ];
     }
 
@@ -75,9 +75,10 @@ class Map extends \yii\db\ActiveRecord
 		$lists = [
 			/* example list of item alias for a field with name field */	
 			'status'=>[							
+							-1=>Yii::t('app','Private'),
 							0=>Yii::t('app','Draft'),							
 							1=>Yii::t('app','Available'),
-							2=>Yii::t('app','Private'),
+							2=>Yii::t('app','Featured'),
 						],			
 					
 		];				

@@ -43,10 +43,10 @@ class Layer extends \yii\db\ActiveRecord
             [['data_id', 'author_id', 'type', 'status', 'isdel'], 'integer'],
             [['title', 'description', 'config'], 'required'],
             [['remarks', 'config'], 'string'],
-            [['time'], 'safe'],
+            [['time','tags'], 'safe'],
             [['title'], 'string', 'max' => 65],
             [['description'], 'string', 'max' => 155],
-            [['tags'], 'string', 'max' => 255]
+            //[['tags'], 'string', 'max' => 255]
         ];
     }
 

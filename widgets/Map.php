@@ -64,6 +64,7 @@ class Map extends Widget
 			else
 			{
 				$xmlUrl = "http".(!empty($module->sslKey)?"s":"")."://".$_SERVER['SERVER_NAME'].\yii\helpers\Url::toRoute('//iyo/layer/xml');
+				$xmlUrl = str_replace('/iyo/layer/xml/','/iyo/layer/xml',$xmlUrl);
 			}			
 			
 			$cmd = 'node "'.$comDir.'/tilepin.js" "'.$xmlDir.'" "'.$pyFile.'" "'.$tileDir.'" "'.$ipaddr.'" "'.$portsStr.'" "'.$xmlUrl.'" "'.$module->maxZoomCache.'" '.(!empty($module->sslKey)?'"'.$module->sslKey.'"':'').' '.(!empty($module->sslCert)?'"'.$module->sslCert.'"':'');						

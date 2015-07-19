@@ -197,4 +197,14 @@ class MapController extends Controller
             throw new NotFoundHttpException('The requested page does not exist.');
         }
     }
+    
+    public function actionFeatured()
+    {
+        $model = MapSearch::find()->orderBy('status DESC')->one();
+        
+		return $this->render('view', [
+			'model' => $model,
+		]);
+	
+    }
 }

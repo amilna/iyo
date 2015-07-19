@@ -18,6 +18,7 @@ class FormatData extends Component
 	private $ext = null;	
 	private $userid = null;
 	private $uploadDir = null;
+	private $baseDir = null;
 	private $geom_col = null;
 	
 	private $ogrexts = [".kml",".geojson",".gpx"];
@@ -28,15 +29,17 @@ class FormatData extends Component
 		
 		$params = explode(":",$param);
 		$uploadDir = $params[0];
-		$geom_col = $params[1];
-		$dataid = $params[2];		
-		$userid = $params[3];						
+		$baseDir = $params[1];
+		$geom_col = $params[2];
+		$dataid = $params[3];		
+		$userid = $params[4];						
 		
 		preg_match('/dbname\=(.*)?/', $dsn, $matches);			
 		$this->dbname = $matches[1];
 		$this->prefix = $tablePrefix;		
 		$this->dataid = $dataid;
 		$this->uploadDir = $uploadDir;
+		$this->baseDir = $baseDir;
 		$this->geom_col = $geom_col;		
 		
 		$this->db = new \yii\db\Connection([
@@ -143,7 +146,7 @@ class FormatData extends Component
 					'CREATE INDEX "'.$table.'_'.$geom_col.'_gist" ON "public"."'.$table.'" using gist ("'.$geom_col.'");'.
 					'END;';
 			
-			return $this->db->pdo->exec($sql);									
+			return ($this->db->pdo->exec($sql) === false?false:true);									
 		}
 		else
 		{
@@ -171,7 +174,8 @@ class FormatData extends Component
 			{						
 				$column["type"] = str_replace("double precision","float",$column["type"]);
 				$sql = "ALTER TABLE ".$table." ADD COLUMN ".$column["name"]." ".$column["type"]." ".$column["options"];
-				return $this->db->createCommand($sql)->execute();							
+				
+				return !is_array($this->db->createCommand($sql)->execute());							
 				
 				//return \yii\db\Migration::addColumn( $table, $column["name"] , $column["type"] ." ". $column["options"] );
 			}
@@ -181,7 +185,7 @@ class FormatData extends Component
 			}	
 		}
 		else
-		{
+		{					
 			return false;	
 		}				
 	}
@@ -240,13 +244,13 @@ class FormatData extends Component
 		$geom_col = $this->geom_col;
 		$metadata = json_decode($this->metadata,true);
 		$pret = $this->prefix.str_replace(["{{%","}}"],"",Data::tableName())."_";
-		$table = $pret.$this->dataid;
+		$table = $pret.$this->dataid;				
 		
 		$sql = "UPDATE ".Data::tableName()." 
 				SET status = 2 
 				WHERE id = ".$this->dataid;
 
-		$res = $this->db->createCommand($sql)->execute();										
+		$res = !is_array($this->db->createCommand($sql)->execute());
 				
 		if ($this->filename && $this->ext)
 		{			
@@ -297,30 +301,21 @@ class FormatData extends Component
 						}
 					}
 				}
-				$metadata["srcfile"] = "";	
-				$table = $this->prefix.str_replace(["{{%","}}"],"",Data::tableName())."_".$this->dataid;																				
-								
-				$res = $this->mkData($table,$geom_col,$type);						
-				$cols = isset($metadata["columns"])?$metadata["columns"]:[];			
-				foreach ($cols as $col)
-				{									
-					$res0 = $this->mkColumn($table,$col,$geom_col);
-					$res = ($res == false?false:$res0);
-				}								
+				$metadata["srcfile"] = "";					
 				
 				unset($metadata['isappend']);
 								
-				shell_exec("rm -R ".\Yii::getAlias($this->uploadDir)."/../tile/*");				
+				shell_exec("rm -R ".\Yii::getAlias($this->baseDir)."/*");				
 				
 				$metadata = json_encode($metadata);																								
 				
 				$sql = "UPDATE ".Data::tableName()." 
-					SET (status,metadata) = (".$status.",'".str_replace("'","''",$metadata)."') 
+					SET (metadata) = ('".str_replace("'","''",$metadata)."') 
 					WHERE id = ".$this->dataid;
 
-				$res =  $this->db->createCommand($sql)->execute();	
+				$res = !is_array($this->db->createCommand($sql)->execute());
 								
-			}			
+			}					
 		}
 		else
 		{			
@@ -328,7 +323,7 @@ class FormatData extends Component
 		}
 		
 		if (isset($metadata["columns"]) && $res)
-		{				
+		{							
 			$sql = "SELECT type FROM ".Data::tableName()." 					
 					WHERE id = ".$this->dataid;
 			$type = $this->db->createCommand($sql)->queryScalar();
@@ -336,9 +331,9 @@ class FormatData extends Component
 			$cols = isset($metadata["columns"])?$metadata["columns"]:[];			
 			foreach ($cols as $col)
 			{									
-				$res0 = $this->mkColumn($table,$col,$geom_col);
+				$res0 = $this->mkColumn($table,$col,$geom_col);				
 				$res = ($res0?$res:false);
-			}
+			}						
 		}	
 		
 		if (isset($metadata["relational_columns"]) && $res)
@@ -370,19 +365,19 @@ class FormatData extends Component
 			$vals .= ")";
 			
 			$sql = "UPDATE ".$table." as t ".$sets." ".$vals." ".$froms." WHERE t.gid=d0.gid";
-			$res = $this->db->createCommand($sql)->execute();			
+			$res = !is_array($this->db->createCommand($sql)->execute());								
 		}
 				
 		$sql = "SELECT type FROM ".Data::tableName()." 					
 					WHERE id = ".$this->dataid;
-				$type = $this->db->createCommand($sql)->queryScalar();													
-		$status = (in_array($type,[0,1,3,4])?1:3);										
+		$type = $this->db->createCommand($sql)->queryScalar();													
+		$status = (in_array($type,[0,1,3,4])?1:3);
 		
 		$sql = "UPDATE ".Data::tableName()." 
 				SET status = ".($res?$status:0)." 
 				WHERE id = ".$this->dataid;
-
-		return $this->db->createCommand($sql)->execute();				
+				
+		return !is_array($this->db->createCommand($sql)->execute());		
 				
 	}
 	
@@ -466,7 +461,7 @@ class FormatData extends Component
 				SET status = 5 
 				WHERE id = ".$this->dataid;
 
-				return $this->db->createCommand($sql)->execute();					
+				return !is_array($this->db->createCommand($sql)->execute());
 			}			
 		}
 		else
@@ -475,7 +470,7 @@ class FormatData extends Component
 				SET status = 5 
 				WHERE id = ".$this->dataid;
 
-			return $this->db->createCommand($sql)->execute();					
+			return !is_array($this->db->createCommand($sql)->execute());
 		}
 	}
 	
@@ -494,7 +489,6 @@ class FormatData extends Component
 			$srid = "";
 			if (strpos($proj4,"ERROR") === false && !empty($proj4))
 			{								
-				
 				
 				$srparams = explode(" ",trim(str_replace("'","",$proj4)));
 				$sql = "SELECT auth_srid FROM spatial_ref_sys WHERE proj4text='".trim(str_replace("'","",$proj4))."'";
@@ -536,7 +530,7 @@ class FormatData extends Component
 			$sql = "UPDATE ".Data::tableName()." 
 					SET srid = ".$srid." 
 					WHERE id = ".$this->dataid;
-			$updatesrid = $this->db->createCommand($sql)->execute();											
+			$updatesrid = !is_array($this->db->createCommand($sql)->execute());			
 			
 			$table = $this->prefix.str_replace(["{{%","}}"],"",Data::tableName())."_".$this->dataid;
 						
@@ -552,8 +546,18 @@ class FormatData extends Component
 					$append = true;	
 				}					
 			}
-						
-			$shp2pgsql = shell_exec("shp2pgsql -t 2D ".($append?"-a":"-d")." -s ".$srid." -g ".$geom_col." -W latin1 '".$file."' public.".$table." > ".$filesql);																					
+			
+			/* if use postgis 2 */			
+			//$shp2pgsql = shell_exec("shp2pgsql -t 2D ".($append?"-a":"-d")." -s ".$srid." -g ".$geom_col." -W latin1 '".$file."' public.".$table." > ".$filesql);																					
+			/* end */
+			
+			/* if use postgis 1.5 */
+			$shp2pgsql = shell_exec("shp2pgsql ".($append?"-a":"-d")." -s ".$srid." -g ".$geom_col." -W latin1 '".$file."' public.".$table." > ".$filesql);																								
+			$str=file_get_contents($filesql);
+			$str=preg_replace('/\'([A-Z0-9]+)\'\);/', 'ST_Force_2D(CAST(\'$1\' as text)));',$str);
+			file_put_contents($filesql, $str);
+			/* end */
+			
 			
 			if (!$append)
 			{
@@ -576,7 +580,7 @@ class FormatData extends Component
 				$sql = "UPDATE ".Data::tableName()." 
 					SET remarks = '".$geom."' 
 					WHERE id = ".$this->dataid;
-					$gtype = $this->db->createCommand($sql)->execute();					
+					$gtype = !is_array($this->db->createCommand($sql)->execute());
 				
 				$geoms = Data::itemAlias("geomtype");
 				$geomtype = 0;
@@ -594,10 +598,10 @@ class FormatData extends Component
 				$sql = "UPDATE ".Data::tableName()." 
 				SET type = ".$geomtype." 
 				WHERE id = ".$this->dataid;
-				$updatetype = $this->db->createCommand($sql)->execute();					
+				$updatetype = !is_array($this->db->createCommand($sql)->execute());
 							
 				//$sql = "DROP TABLE IF EXISTS ".$table."";
-				//$drop = $this->db->createCommand($sql)->execute();						
+				//$drop = $this->db->createCommand($sql)->execute();
 			}
 			
 			$psql = shell_exec("psql -q -d ".$this->dbname." < ".$filesql);
@@ -616,7 +620,7 @@ class FormatData extends Component
 				SET status = 5 
 				WHERE id = ".$this->dataid;
 
-			return $this->db->createCommand($sql)->execute();					
+			return !is_array($this->db->createCommand($sql)->execute());			
 		}
 	}		
 
@@ -644,7 +648,7 @@ class FormatData extends Component
 				SET status = 5 
 				WHERE id = ".$this->dataid;
 
-			return $this->db->createCommand($sql)->execute();					
+			return !is_array($this->db->createCommand($sql)->execute());
 		}
 	}		
 	

@@ -374,6 +374,13 @@
 	float:left;		
 }
 
+.iyo-layer-class-symbol svg {	
+	height:22px;
+	width:42px;	
+	display:block;
+	margin:auto;	
+}
+
 .iyo-layer-class-symbol-fill,.iyo-layer-class-symbol-stroke {
 	position:absolute;
 	width:40px;

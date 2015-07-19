@@ -451,8 +451,22 @@ sA.Map.prototype.initUiLegend = function(layer) {
 			var html = $("#iyo-template-uilayerclass").html();
 			html = html.replace("{cid}",layid+"_class_"+r);			
 			html = html.replace("{class}",this.isObj(rule.name)?rule.name:lconf.name);
-			//console.log(html);			
+									
 			$("#" + layid +" .iyo-layer-classes").append(html);
+			var ratw = Math.floor($("#" + layid+"_class_"+r+ " .iyo-layer-class-symbol").width()/10)*10;			
+			var rath = Math.floor($("#" + layid+"_class_"+r+ " .iyo-layer-class-symbol").height()/10)*10;			
+			
+			if (this.inArray(lconf.geomtype,['Polygon','MultiPolygon']) >= 0)
+			{
+				var img = '<svg preserveAspectRatio="xMinYMin meet" viewBox="0 0 160 80"><rect x="10" y="10" rx="12" ry="12" width="140" height="60" style="fill:none;stoke:none;"/>/svg>';				
+				$("#" + layid+"_class_"+r+ " .iyo-layer-class-symbol").append(img);					
+			}
+			else if (this.inArray(lconf.geomtype,['LineString','MultiLineString']) >= 0)
+			{
+				var img = '<svg preserveAspectRatio="xMinYMin meet" viewBox="0 0 160 80"><polygon points="0,40 10,31 20,25 30,22 40,21 50,22 60,25 70,31 80,40 90,49 100,55 110,58 120,59 130,58 140,55 150,49 160,40" style="fill:none;stoke:none;"/>';
+				img += '<polyline points="0,40 10,31 20,25 30,22 40,21 50,22 60,25 70,31 80,40 90,49 100,55 110,58 120,59 130,58 140,55 150,49 160,40" style="fill:none;stoke:none;"/></svg>';
+				$("#" + layid+"_class_"+r+ " .iyo-layer-class-symbol").append(img);					
+			}			
 			
 			if (this.isObj(rule.polygonSymbolizer))
 			{
@@ -460,13 +474,13 @@ sA.Map.prototype.initUiLegend = function(layer) {
 				var fillOpacity = this.isObj(rule.polygonSymbolizer.fillOpacity)?rule.polygonSymbolizer.fillOpacity:"inherit";								
 								
 				if (this.inArray(lconf.geomtype,['Polygon','MultiPolygon']) >= 0)
-				{
-					$("#" + layid+"_class_"+r+ " .iyo-layer-class-symbol-fill").css({"backgroundColor":fill,"opacity":parseFloat(fillOpacity),"height":"20px"});
+				{					
+					$("#" + layid+"_class_"+r+ " .iyo-layer-class-symbol svg rect").css({"fill":fill,"fill-opacity":parseFloat(fillOpacity)});
 				}
 				else if (this.inArray(lconf.geomtype,['LineString','MultiLineString']) >= 0)
-				{
-					$("#" + layid+"_class_"+r+ " .iyo-layer-class-symbol-fill").css({"backgroundColor":fill,"opacity":parseFloat(fillOpacity),"height":"12px"});
-				}
+				{				
+					$("#" + layid+"_class_"+r+ " .iyo-layer-class-symbol svg polygon").css({"fill":fill,"fill-opacity":parseFloat(fillOpacity)});
+				}				
 			}
 			
 			if (this.isObj(rule.lineSymbolizer))
@@ -476,13 +490,13 @@ sA.Map.prototype.initUiLegend = function(layer) {
 				var strokeWidth = this.isObj(rule.lineSymbolizer.strokeWidth)?rule.lineSymbolizer.strokeWidth:"inherit";								
 				
 				if (this.inArray(lconf.geomtype,['Polygon','MultiPolygon']) >= 0)
-				{
-					$("#" + layid+"_class_"+r+ " .iyo-layer-class-symbol-stroke").css({"borderColor":stroke,"opacity":parseFloat(strokeOpacity),"borderWidth":parseInt(strokeWidth),"height":"20px"});
+				{				
+					$("#" + layid+"_class_"+r+ " .iyo-layer-class-symbol svg rect").css({"stroke":stroke,"stroke-opacity":parseFloat(strokeOpacity),"stroke-width":parseInt(strokeWidth)*(160/ratw)});
 				}
 				else if (this.inArray(lconf.geomtype,['LineString','MultiLineString']) >= 0)
-				{					
-					$("#" + layid+"_class_"+r+ " .iyo-layer-class-symbol-stroke").css({"borderBottomColor":stroke,"opacity":parseFloat(strokeOpacity),"borderBottomWidth":parseInt(strokeWidth),"height":"12px"});					
-				}
+				{									
+					$("#" + layid+"_class_"+r+ " .iyo-layer-class-symbol svg polyline").css({"stroke":stroke,"stroke-opacity":parseFloat(strokeOpacity),"stroke-width":parseInt(strokeWidth)*(160/ratw)});
+				}				
 			}
 			
 			if (this.isObj(rule.style))
@@ -493,31 +507,40 @@ sA.Map.prototype.initUiLegend = function(layer) {
 				var strokeWidth = this.isObj(rule.style.strokeWidth)?rule.style.strokeWidth:false;
 				var strokeColor = this.isObj(rule.style.strokeColor)?rule.style.strokeColor:false;
 				var fillColor = this.isObj(rule.style.fillColor)?rule.style.fillColor:false;								
+				var radius = this.isObj(rule.style.radius)?parseInt(rule.style.radius):false;								
 				var rc = r;
 				
 				//console.log(rule.style,lconf.geomtype);
 				
 				if (this.inArray(lconf.geomtype,['Point','MultiPoint']) >= 0)
 				{					
-					var newImg = new Image();					
-					newImg.onload = function(){
-						var h = newImg.height*scale;	
-						var w = newImg.width*scale;		
-									
-						var img = '<img src="'+rule.style.src+'" width='+w+' height='+h+' style="opacity:'+opacity+';margin:auto;display:block;"/>';						
-						$("#" + layid+"_class_"+rc+ " .iyo-layer-class-symbol-fill").html(img);
-					};
-					newImg.src = rule.style.src;										
+					if (src)
+					{
+						var newImg = new Image();					
+						newImg.onload = function(){
+							var h = newImg.height*scale;	
+							var w = newImg.width*scale;		
+										
+							var img = '<img src="'+src+'" width='+w+' height='+h+' style="opacity:'+opacity+';margin:auto;display:block;"/>';						
+							$("#" + layid+"_class_"+rc+ " .iyo-layer-class-symbol").html(img);
+						};
+						newImg.src = src;
+					}
+					else
+					{
+						var img = '<svg><circle cx="'+(radius+10)+'" cy="'+(radius+10)+'" r="'+(radius)+'" style="fill-opacity:'+parseFloat(opacity)+';stroke-opacity:'+parseFloat(opacity)+';stroke-width:'+parseInt(strokeWidth)+';fill:'+(fillColor?fillColor:'#fff')+';stroke:'+(strokeColor?strokeColor:'#000')+';"/></svg>';
+						$("#" + layid+"_class_"+rc+ " .iyo-layer-class-symbol").html(img);
+						$("#" + layid+"_class_"+rc+ " .iyo-layer-class-symbol,#" + layid+"_class_"+rc+ " .iyo-layer-class-symbol svg").css("height",Math.max((radius+10)*2,rath));
+					}
 				}
 				else if (this.inArray(lconf.geomtype,['Polygon','MultiPolygon']) >= 0)
-				{
-					$("#" + layid+"_class_"+r+ " .iyo-layer-class-symbol-fill").css({"backgroundColor":fillColor,"opacity":parseFloat(opacity),"height":"20px"});
-					$("#" + layid+"_class_"+r+ " .iyo-layer-class-symbol-stroke").css({"borderColor":strokeColor,"opacity":parseFloat(opacity),"borderWidth":parseInt(strokeWidth),"height":"20px"});
+				{					
+					$("#" + layid+"_class_"+r+ " .iyo-layer-class-symbol svg rect").css({"fill":fillColor,"fill-opacity":parseFloat(opacity),"stroke":strokeColor,"stroke-opacity":parseFloat(opacity)});
 				}
 				else if (this.inArray(lconf.geomtype,['LineString','MultiLineString']) >= 0)
-				{
-					$("#" + layid+"_class_"+r+ " .iyo-layer-class-symbol-fill").css({"backgroundColor":fillColor,"opacity":parseFloat(opacity),"height":"12px"});										
-					$("#" + layid+"_class_"+r+ " .iyo-layer-class-symbol-stroke").css({"borderBottomColor":strokeColor,"opacity":parseFloat(opacity),"borderBottomWidth":parseInt(strokeWidth),"height":"12px"});
+				{				
+					$("#" + layid+"_class_"+r+ " .iyo-layer-class-symbol svg polygon").css({"fill":fillColor,"fill-opacity":parseFloat(opacity)});
+					$("#" + layid+"_class_"+r+ " .iyo-layer-class-symbol svg polyline").css({"stroke":strokeColor,"stroke-opacity":parseFloat(opacity)});
 				}
 			}
 		}	
@@ -1468,6 +1491,7 @@ sA.Map.prototype.mkStyle = function(feature,layer,isHighlight) {
 		var dstyle = this.getStyle([feature,layer]);
 		var scale = dstyle.scale+(this.isObj(isHighlight)?0.3:0);
 		var opacity = Math.min(dstyle.opacity+(this.isObj(isHighlight)?0.3:0),1);	
+		var radius = dstyle.radius*(this.isObj(isHighlight)?1.5:1);
 		var label = this.isObj(dstyle.label)?dstyle.label:false;	
 		
 		var labelAttribute = '';
@@ -1484,6 +1508,36 @@ sA.Map.prototype.mkStyle = function(feature,layer,isHighlight) {
 					opacity:opacity,	
 					anchor:dstyle.anchor,						
 					src:dstyle.src
+				}),
+				text : label?new ol.style.Text({
+					text:labelAttribute,
+					font: this.isObj(label.font)?label.font:'12px Calibri,sans-serif',
+					offsetX: this.isObj(label.offsetX)?label.offsetX:0,				
+					offsetY: this.isObj(label.offsetY)?label.offsetY:0,
+					textAlign: this.isObj(label.textAlign)?label.textAlign:'center',
+					textBaseline: this.isObj(label.textBaseline)?label.textBaseline:'middle',
+					fill: new ol.style.Fill({
+						color: this.isObj(label.color)?label.color:'#000',							
+					}),
+					stroke: new ol.style.Stroke({
+						color: this.isObj(label.strokeColor)?label.strokeColor:'#fff',
+						width: this.isObj(label.strokeWidth)?label.strokeWidth:1
+					})
+				}):undefined
+			});											
+		}
+		else if (this.isObj(dstyle.radius))
+		{							
+			oStyle = new ol.style.Style({
+				image : new ol.style.Circle({
+					radius: radius,				  
+					fill: new ol.style.Fill({
+						color: this.isObj(dstyle.fillColor)?dstyle.fillColor:'#fff',							
+					}),
+					stroke: new ol.style.Stroke({
+						color: this.isObj(dstyle.strokeColor)?dstyle.strokeColor:'#000',
+						width: this.isObj(dstyle.strokeWidth)?dstyle.strokeWidth:1
+					})
 				}),
 				text : label?new ol.style.Text({
 					text:labelAttribute,

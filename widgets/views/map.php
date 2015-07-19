@@ -116,9 +116,7 @@
 
 <div id="iyo-template-uilayerclass" class="noprint hidden">
 	<div id="{cid}" class="iyo-layer-class">
-		<div class="iyo-layer-class-symbol">
-			<div class="iyo-layer-class-symbol-fill"></div>			
-			<div class="iyo-layer-class-symbol-stroke"></div>			
+		<div class="iyo-layer-class-symbol">			
 		</div>
 		<div class="iyo-layer-class-remarks">{class}</div>
 	</div>

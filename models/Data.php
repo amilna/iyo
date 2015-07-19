@@ -160,7 +160,7 @@ class Data extends \yii\db\ActiveRecord
 		{			
 			$module = Yii::$app->getModule('iyo');
 			$uploadDir = \Yii::getAlias($module->uploadDir);
-			$baseDir = \Yii::getAlias($module->baseDir);
+			$tileDir = \Yii::getAlias($module->tileDir);
 			$geom_col = $module->geom_col;				
 			
 			$pid = !empty($this->pid)?intval($this->pid):false;			
@@ -188,7 +188,7 @@ class Data extends \yii\db\ActiveRecord
 			$username = $this->db->username;
 			$password = $this->db->password;				
 			
-			$param = $uploadDir.":".$baseDir.":".$geom_col.":".$this->id.":".Yii::$app->user->id;
+			$param = $uploadDir.":".$tileDir.":".$geom_col.":".$this->id.":".Yii::$app->user->id;
 			$path = \Yii::getAlias("@amilna/iyo/components");			
 			$cmd = $path."/exec -action='import' -dsn='".$dsn."' -tablePrefix='".$tablePrefix."' -username='".$username."' -password='".$password."' -param='".$param."'";
 			//die($cmd);			

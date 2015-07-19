@@ -10,8 +10,8 @@ class Tilep extends Component
 {
 	public $xmlDir = './'; /* mapnik xml directory */
 	public $pyFile = './'; /* tilep.py file */
-	public $baseUrl = ''; /* baseurl for output */
-	public $baseDir = ''; /* basedir for output */
+	public $tileURL = ''; /* baseurl for output tile */
+	public $tileDir = ''; /* basedir for output tile */
 	
 	public $controller;
 	public $view = 'error';
@@ -86,7 +86,7 @@ class Tilep extends Component
 	
 	public function putTms($name,$url,$zoom,$xtile,$ytile)
 	{						
-		$dir = $this->baseDir."/".$name."/".$zoom."/".$xtile;
+		$dir = $this->tileDir."/".$name."/".$zoom."/".$xtile;
 		$bfile = $dir."/".$ytile;					
 		
 		if (!file_exists($dir))
@@ -137,7 +137,7 @@ class Tilep extends Component
 			die();	
 		}		
 		
-		$dir = $this->baseDir."/".$xml."/".$zoom."/".$xtile;
+		$dir = $this->tileDir."/".$xml."/".$zoom."/".$xtile;
 		$bfile = $dir."/".$ytile;						
 				
 		if ($type == 'utf' || $type == 'json')
@@ -213,7 +213,7 @@ class Tilep extends Component
 	
 	public function createTile($xml,$zoom,$xtile,$ytile,$type = false,$clear = false,$lgrid = false,$urls=[])
 	{						
-		$dir = $this->baseDir."/".$xml."/".$zoom."/".$xtile;
+		$dir = $this->tileDir."/".$xml."/".$zoom."/".$xtile;
 		$bfile = $dir."/".$ytile;								
 		header("Access-Control-Allow-Origin: *");	
 				
@@ -268,8 +268,8 @@ class Tilep extends Component
 		$tilep = new \amilna\iyo\components\Tilep();
 		$tilep->xmlDir = \Yii::getAlias($module->xmlDir);
 		$tilep->pyFile = \Yii::getAlias($module->pyFile);
-		$tilep->baseDir = \Yii::getAlias($module->baseDir);
-		$tilep->baseUrl = \Yii::getAlias($module->baseUrl);
+		$tilep->tileDir = \Yii::getAlias($module->tileDir);
+		$tilep->tileURL = \Yii::getAlias($module->tileURL);
 		
 		preg_match('/iyo(\d+)_([a-zA-Z0-9_]+)/',$tile,$matches);
 		if (count($matches) > 0)

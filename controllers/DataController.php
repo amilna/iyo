@@ -249,8 +249,8 @@ class DataController extends Controller
 		$tilep = new \amilna\iyo\components\Tilep();
 		$tilep->xmlDir = \Yii::getAlias($module->xmlDir);
 		$tilep->pyFile = \Yii::getAlias($module->pyFile);
-		$tilep->baseDir = \Yii::getAlias($module->baseDir);
-		$tilep->baseUrl = \Yii::getAlias($module->baseUrl);
+		$tilep->tileDir = \Yii::getAlias($module->tileDir);
+		$tilep->tileURL = \Yii::getAlias($module->tileURL);
 		
 		$urls = $module->urls;
 		//$urls = [];

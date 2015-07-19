@@ -54,7 +54,7 @@ class Map extends Widget
 		if (!$sock && $module->tileServer == 'nodejs') {						
 			$pyFile = \Yii::getAlias($module->pyFile);
 			$xmlDir = \Yii::getAlias($module->xmlDir);
-			$tileDir = \Yii::getAlias($module->baseDir);
+			$tileDir = \Yii::getAlias($module->tileDir);
 			$portsStr = '['.implode(',',$module->ports).']';
 			
 			if ($module->xmlServer == 'nodejs')
@@ -118,8 +118,8 @@ class Map extends Widget
 						}
 						else
 						{
-							$baseUrl = \Yii::getAlias($module->baseUrl);
-							$this->options['layers'][$i]['urls'] = [$baseUrl."/iyo".$layer->id."_".preg_replace('/[^a-zA-Z0-9]/','_',strtolower($layer->title))."/{z}/{x}/{y}.".(in_array($layer->data->type,[0,3])?'json':'png')];
+							$tileURL = \Yii::getAlias($module->tileURL);
+							$this->options['layers'][$i]['urls'] = [$tileURL."/iyo".$layer->id."_".preg_replace('/[^a-zA-Z0-9]/','_',strtolower($layer->title))."/{z}/{x}/{y}.".(in_array($layer->data->type,[0,3])?'json':'png')];
 						}	
 						
 						$lconfigs = json_decode($layer->config,true);
@@ -131,8 +131,8 @@ class Map extends Widget
 							}
 							else
 							{
-								$baseUrl = \Yii::getAlias($module->baseUrl);
-								$this->options['layers'][$i]['urls'] = [$baseUrl."/iyo".$layer->id."_".preg_replace('/[^a-zA-Z0-9]/','_',strtolower($layer->title))."/{z}/{x}/{y}.".(in_array($lconfigs[0]['type'],['geojson'])?'json':'png')];								
+								$tileURL = \Yii::getAlias($module->tileURL);
+								$this->options['layers'][$i]['urls'] = [$tileURL."/iyo".$layer->id."_".preg_replace('/[^a-zA-Z0-9]/','_',strtolower($layer->title))."/{z}/{x}/{y}.".(in_array($lconfigs[0]['type'],['geojson'])?'json':'png')];								
 							}
 						}
 						

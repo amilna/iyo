@@ -18,7 +18,7 @@ class FormatData extends Component
 	private $ext = null;	
 	private $userid = null;
 	private $uploadDir = null;
-	private $baseDir = null;
+	private $tileDir = null;
 	private $geom_col = null;
 	
 	private $ogrexts = [".kml",".geojson",".gpx"];
@@ -29,7 +29,7 @@ class FormatData extends Component
 		
 		$params = explode(":",$param);
 		$uploadDir = $params[0];
-		$baseDir = $params[1];
+		$tileDir = $params[1];
 		$geom_col = $params[2];
 		$dataid = $params[3];		
 		$userid = $params[4];						
@@ -39,7 +39,7 @@ class FormatData extends Component
 		$this->prefix = $tablePrefix;		
 		$this->dataid = $dataid;
 		$this->uploadDir = $uploadDir;
-		$this->baseDir = $baseDir;
+		$this->tileDir = $tileDir;
 		$this->geom_col = $geom_col;		
 		
 		$this->db = new \yii\db\Connection([
@@ -305,7 +305,7 @@ class FormatData extends Component
 				
 				unset($metadata['isappend']);
 								
-				shell_exec("rm -R ".\Yii::getAlias($this->baseDir)."/*");
+				shell_exec("rm -R ".\Yii::getAlias($this->tileDir)."/*");
 				
 				$metadata = json_encode($metadata);																								
 				

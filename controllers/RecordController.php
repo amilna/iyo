@@ -371,7 +371,7 @@ class RecordController extends Controller
 			}
 			else
 			{
-				shell_exec("rm -R ".\Yii::getAlias($module->baseDir)."/*");	
+				shell_exec("rm -R ".\Yii::getAlias($module->tileDir)."/*");	
 			}
 			
 			/*

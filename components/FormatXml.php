@@ -18,8 +18,7 @@ class FormatXml extends Component
 	private $geom_col = null;
 	
 	public function __construct($dsn,$tablePrefix,$username,$password,$param)
-	{				
-		
+	{										
 		$params = explode(":",$param);
 		$layerid = $params[0];
 		$layername = $params[1];		
@@ -114,12 +113,12 @@ class FormatXml extends Component
 				}
 				if (isset($r['style']))
 				{
-					if (isset($r['style']['src']))
+					if (isset($r['style']['src']) || isset($r['style']['radius']))
 					{
 						$pointSymbolizer = $rule->addChild('PointSymbolizer');					
 					}
 						
-					if (isset($r['style']['label']) && !isset($r['style']['src']))
+					if (isset($r['style']['label']) && !(isset($r['style']['src']) || isset($r['style']['radius'])))
 					{
 						if (isset($r['style']['label']['attribute']) || isset($r['style']['label']['text']))
 						{
@@ -144,15 +143,19 @@ class FormatXml extends Component
 					$textSymbolizer = $lrule->addChild('TextSymbolizer',$islabel['text']);
 				}
 				
+				$size = 10;
+				$face = 'arial';
 				if (isset($islabel['font']))
 				{
 					preg_match('/(\d+)px ([a-zA-Z0-9\-_ ]+)/',$islabel['font'],$matches);
 					if (count($matches) > 0)
 					{
-						$textSymbolizer->addAttribute('size',$matches[1]);
-						$textSymbolizer->addAttribute('face-name',$matches[2]);
-					}
+						$size = $matches[1];
+						$face = $matches[2];
+					}					
 				}
+				$textSymbolizer->addAttribute('size',$size);
+				$textSymbolizer->addAttribute('face-name',$face);
 				$textSymbolizer->addAttribute('fill',isset($islabel['color'])?$islabel['color']:'#000000');
 				$textSymbolizer->addAttribute('halo-fill',isset($islabel['strokeColor'])?$islabel['strokeColor']:'#ffffff');
 				$textSymbolizer->addAttribute('halo-radius',isset($islabel['strokeWidth'])?$islabel['strokeWidth'].'':'1');

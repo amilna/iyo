@@ -28,8 +28,8 @@ class Module extends \yii\base\Module
 		 
 	public $xmlDir = '@amilna/iyo/xml'; /* mapnik xml directory */
 	public $pyFile = '@amilna/iyo/components/tilep.py'; /* tilep.py file, use tipe2.py if use mapnik2.0.0 */
-	public $baseDir = '@webroot/tile'; /* basedir for output */
-	public $baseUrl = '@web/tile'; /* baseurl for output */
+	public $tileDir = '@webroot/tile'; /* basedir for output */
+	public $tileURL = '@web/tile'; /* baseurl for output */
 	public $basePath = '@web'; /* baseurl for output */
 	public $sslKey = '';
 	public $sslCert = '';

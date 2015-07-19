@@ -1491,7 +1491,7 @@ sA.Map.prototype.mkStyle = function(feature,layer,isHighlight) {
 		var dstyle = this.getStyle([feature,layer]);
 		var scale = dstyle.scale+(this.isObj(isHighlight)?0.3:0);
 		var opacity = Math.min(dstyle.opacity+(this.isObj(isHighlight)?0.3:0),1);	
-		var radius = dstyle.radius*(this.isObj(isHighlight)?1.5:1);
+		var radius = dstyle.radius*(this.isObj(isHighlight)?2:1);
 		var label = this.isObj(dstyle.label)?dstyle.label:false;	
 		
 		var labelAttribute = '';

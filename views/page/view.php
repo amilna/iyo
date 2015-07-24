@@ -45,10 +45,10 @@ $this->beginBlock('STATIC_SCRIPTS');
 	{
 		for ($m=0;$m<count($matches[0]);$m++)
 		{
-			$sql  = $matches[1][$m];
+			$sql  = "SELECT ".$matches[1][$m].";";
 			$values  = '{'.$matches[2][$m].'}';
 			$var  = $matches[3][$m];
-			$data = Yii::$app->db->createCommand($sql)->bindValues(json_decode($values,true))->queryScalar();
+			$data = Yii::$app->db->createCommand($sql)->bindValues(json_decode($values,true))->queryAll();
 			$dataJSON = json_encode($data);
 			
 			

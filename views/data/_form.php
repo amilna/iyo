@@ -180,8 +180,7 @@ $('#filesrc .kcf-thumbs').bind("DOMSubtreeModified",function(){
 				$(img).attr("src",src.replace(ext+".png","htm.png"));
 			}			
 		});
-	}
-	console.log(url.replace("<?= $module->uploadURL."/geos/"?>","").replace(/%3D/g,"="));		
+	}	
 	$('#data-filesrc').val(url.replace("<?= $module->uploadURL."/geos/"?>","").replace(/%3D/g,"="));	
 });
 	

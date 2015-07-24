@@ -41,7 +41,7 @@ class Map extends \yii\db\ActiveRecord
     public function rules()
     {
         return [
-            [['title', 'description', 'config'], 'required'],
+            [['title', 'description', 'status', 'config'], 'required'],
             [['remarks', 'config'], 'string'],
             [['author_id', 'status', 'isdel'], 'integer'],
             [['time','tags'], 'safe'],
@@ -157,4 +157,15 @@ class Map extends \yii\db\ActiveRecord
 		}
 		return $tags;
 	}
+	
+	
+	public function beforeSave($insert)
+	{
+		if (parent::beforeSave($insert)) {
+			$this->config = str_replace('&amp;','&',$this->config);			
+			return true;
+		} else {
+			return false;
+		}
+	}   
 }

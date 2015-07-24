@@ -41,7 +41,7 @@ class Layer extends \yii\db\ActiveRecord
     {
         return [
             [['data_id', 'author_id', 'type', 'status', 'isdel'], 'integer'],
-            [['title', 'description', 'config'], 'required'],
+            [['title', 'type', 'status', 'description', 'config'], 'required'],
             [['remarks', 'config'], 'string'],
             [['time','tags'], 'safe'],
             [['title'], 'string', 'max' => 65],
@@ -168,5 +168,15 @@ class Layer extends \yii\db\ActiveRecord
 			}	
 		}
 		return $tags;
-	}    
+	} 
+	
+	public function beforeSave($insert)
+	{
+		if (parent::beforeSave($insert)) {
+			$this->config = str_replace('&amp;','&',$this->config);			
+			return true;
+		} else {
+			return false;
+		}
+	}   
 }

@@ -49,6 +49,8 @@
 					'type'=>'tile',					
 					'geomtype'=>'Polygon',
 					'urls'=>["http".(!empty($module->sslKey)?"s":"")."://".(!empty($module->proxyhosts)?$module->proxyhosts[0]:($module->ipaddress.":".$module->ports[0]))."/world_style/{z}/{x}/{y}.png"],
+					//'urls'=>["http://127.0.0.1:1400/yii2/webgisPEP/backend/web/tile/citrates/{z}/{x}/{y}.png"],					
+					
 					'fields'=>[
 						[
 							'name'=>'NAME',
@@ -62,7 +64,8 @@
 							'name'=>'POP_EST',
 							'alias'=>'Population',
 						]
-					],					
+					],
+					 					
 					'opacity'=>0.7,
 					'visible'=>true
 				],								

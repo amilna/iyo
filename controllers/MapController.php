@@ -107,6 +107,22 @@ class MapController extends Controller
 			]);
 		}        
     }
+    
+    public function actionEdit($id,$format= false)
+    {
+        $model = $this->findModel($id);
+        
+        if ($format == 'json')
+        {
+			return \yii\helpers\Json::encode($model);	
+		}
+		else
+		{
+			return $this->render('edit', [
+				'model' => $model,
+			]);
+		}        
+    }
 
     /**
      * Creates a new Map model.
@@ -201,6 +217,11 @@ class MapController extends Controller
     public function actionFeatured()
     {
         $model = MapSearch::find()->orderBy('status DESC')->one();
+        
+        if ($model == false)
+        {
+			return $this->redirect(['default']);
+		}
         
 		return $this->render('view', [
 			'model' => $model,

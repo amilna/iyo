@@ -10,7 +10,7 @@ class Module extends \yii\base\Module
     public $userClass = 'common\models\User';//'dektrium\user\models\User';
 	public $uploadDir = '@webroot/upload';
 	public $uploadURL = '@web/upload';
-	public $geom_col = 'the_geom';
+	public $geom_col = 'the_geom';	
 	
 	public $ipaddress = '127.0.0.1';
 	public $ports = [1401,1402];
@@ -18,8 +18,8 @@ class Module extends \yii\base\Module
 		see http://serverfault.com/questions/195611/how-do-i-redirect-subdomains-to-a-different-port-on-the-same-server
 		and http://stackoverflow.com/questions/6764852/proxying-with-ssl */
 	
-	public $xmlServer = 'nodejs'; /* nodejs or apache */
-	public $tileServer = 'nodejs'; /* nodejs or apache */
+	public $xmlServer = 'apache'; /* nodejs or apache */
+	public $tileServer = 'webpy'; /* webpy or nodejs or apache, it is reccomended to use webpy */
 	
 	public $xmlipaddress = '127.0.0.1';
 	public $xmlports = [1403]; /* only used if nodejs */
@@ -27,7 +27,9 @@ class Module extends \yii\base\Module
 	public $allowedips = ['127.0.0.1', '::1']; /* allowed ip to access xml url */
 		 
 	public $xmlDir = '@amilna/iyo/xml'; /* mapnik xml directory */
-	public $pyFile = '@amilna/iyo/components/tilep.py'; /* tilep.py file, use tipe2.py if use mapnik2.0.0 */
+	public $execFile = '@amilna/iyo/components/exec';
+	public $pyFile = '@amilna/iyo/components/tilep.py'; /* tilep.py file, use tilep2.py if use mapnik2.0.0 */
+	public $webpyFile = '@amilna/iyo/components/webtilep.py'; /* tilep.py file, use webtilep2.py if use mapnik2.0.0 */
 	public $tileDir = '@webroot/tile'; /* basedir for output */
 	public $tileURL = '@web/tile'; /* baseurl for output */
 	public $basePath = '@web'; /* baseurl for output */

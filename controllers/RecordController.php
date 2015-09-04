@@ -43,9 +43,12 @@ class RecordController extends Controller
 
         if ($format == 'json')
         {
+			$module = Yii::$app->getModule('iyo');
+			$geom_col = $module->geom_col;
 			$model = [];
 			foreach ($dataProvider->getModels() as $d)
 			{												
+				$d->$geom_col = $d->geojson;
 				$obj = $d->attributes;
 				if ($arraymap)
 				{
@@ -227,6 +230,7 @@ class RecordController extends Controller
     
     public function actionRest($data = false,$id = null)
     {
+        $module = Yii::$app->getModule('iyo');
         $this->enableCsrfValidation = false;
         if (!$data)
         {
@@ -270,8 +274,7 @@ class RecordController extends Controller
 			$res= false;					
 			if (count($post) > 1 && $model->load(['Record'=>$rec]))
 			{
-				
-				$module = Yii::$app->getModule('iyo');
+								
 				$geom1 = false;
 				$geom2 = false;
 				foreach ($rec as $key=>$val)
@@ -291,7 +294,7 @@ class RecordController extends Controller
 						$geometry = json_decode($val);					
 						$tipe = strtoupper($geometry->type);
 						$coordinates = $geometry->coordinates;
-						$srid = (empty($model->data->srid)?4326:$model->data->srid); //4326;																				
+						$srid = (empty($model->data->srid)?4326:$model->data->srid); //4326;
 											
 						$string = json_encode($coordinates);										
 						//echo $string."\n";
@@ -370,20 +373,9 @@ class RecordController extends Controller
 				$errors = array_merge($errors,$err);	
 			}
 			else
-			{
-				shell_exec("rm -R ".\Yii::getAlias($module->tileDir)."/*");	
-			}
-			
-			/*
-			if ($res)
-			{
-				$url = "http://127.0.0.1:1402/wilayah_kerja?r=123";
-				$c = curl_init($url);
-				curl_setopt($c, CURLOPT_RETURNTRANSFER, 1);
-				$page = curl_exec($c);
-				curl_close($c);	
-			}
-			*/
+			{				
+				$clear = \amilna\iyo\components\Tilep::clearTile($model->data->id,true,true);
+			}			
 		} 
 				
 		return json_encode(['status'=>$res,'error'=>$errors,'gid'=>$model->gid]);

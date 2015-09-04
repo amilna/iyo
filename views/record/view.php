@@ -27,6 +27,31 @@ if(($key = array_search($module->geom_col, $columns)) !== false) {
 	unset($columns[$key]);
 }
 
+$cols = [];
+$mcols = json_decode($model->data->metadata);
+		
+foreach ($mcols->columns as $mcol)
+{
+	if (in_array($mcol->name,$columns))
+	{								
+		$cols[] = $mcol->name;		
+	}
+}
+
+if (isset($mcols->relational_columns))
+{
+	foreach ($mcols->relational_columns as $d=>$cs)
+	{
+		foreach ($cs as $c)
+		{
+			if (in_array('_'.$d.'_'.$c,$columns))
+			{								
+				$cols[] = '_'.$d.'_'.$c;		
+			}
+		}
+	}
+}
+
 $this->title = $model->title;
 $this->params['breadcrumbs'][] = ['label' => Yii::t('app', 'Data'), 'url' => ['//iyo/data/index']];
 $this->params['breadcrumbs'][] = ['label' => $model->data->title, 'url' => ['index', 'data'=>$model::$dataId]];
@@ -49,7 +74,7 @@ $this->params['breadcrumbs'][] = $this->title;
     
     <?= DetailView::widget([
         'model' => $model,
-        'attributes' => $columns,
+        'attributes' => $cols,//$columns,
     ]) ?>
 
 </div>

@@ -14,14 +14,14 @@ class Process
 
     public function __construct($cl=false){
         if ($cl != false){
-            $this->command = $cl;
+            $this->command = $cl;            
             $this->runCom();
         }
     }
     private function runCom(){
-        $command = 'nohup '.$this->command.' > /dev/null 2>&1 & echo $!';
+        $command = 'nohup '.$this->command.' > /dev/null 2>&1 & echo $!';                
         exec($command ,$op);
-        $this->pid = (int)$op[0];
+        $this->pid = (int)$op[0];        
     }
 
     public function setPid($pid){

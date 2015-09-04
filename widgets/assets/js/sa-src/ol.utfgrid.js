@@ -30,6 +30,7 @@ ol.utfGrid = function(opt_options) {
 	}	
 }; 
 
+
 ol.utfGrid.prototype.addTo = function(map)
 { 
 	if (this.isObj(map))
@@ -56,10 +57,12 @@ ol.utfGrid.prototype.addTo = function(map)
 	}
 };
 
+
 ol.utfGrid.prototype.isObj = function(obj)
 {
 	return (typeof obj != "undefined"?true:false);
 };	
+
 
 ol.utfGrid.prototype.getUrl = function(url,success,err,params)
 {
@@ -93,16 +96,19 @@ ol.utfGrid.prototype.getUrl = function(url,success,err,params)
 				err(xmlhttp.responseText,params,xmlhttp);
 			}	
 		}		
-	}
+	};
+	
 	xmlhttp.open("GET",url,true);
 	xmlhttp.send();	
 	
 };
 
+/*
 ol.utfGrid.prototype.grid = function(grid)
 {	
 	return grid;
 };
+*/ 
 
 ol.utfGrid.prototype.fixLonlat = function(lonlat)
 { 	
@@ -111,6 +117,7 @@ ol.utfGrid.prototype.fixLonlat = function(lonlat)
 	
 	return lonlat;
 };	
+
 
 ol.utfGrid.prototype.fetch = function(evt,forceRefresh)
 { 	
@@ -139,7 +146,7 @@ ol.utfGrid.prototype.fetch = function(evt,forceRefresh)
 			var ddctr = ol.proj.transform(center,
 			  'EPSG:3857', 'EPSG:4326');  
 			
-			ddbox = [ddbox0[0],ddbox0[1],ddbox1[0],ddbox1[1]]  			
+			ddbox = [ddbox0[0],ddbox0[1],ddbox1[0],ddbox1[1]];  			
 			
 			var utfGrids = map.utfGrids;
 			var tile = [];
@@ -198,7 +205,7 @@ ol.utfGrid.prototype.fetch = function(evt,forceRefresh)
 						ug.data[zoom] = [];
 					}				
 					
-					var grid = ug.grid;
+					//var grid = ug.grid;
 					var tiles = [];
 					
 					for(var x = g0[0];x<=g1[0];x++)
@@ -211,7 +218,11 @@ ol.utfGrid.prototype.fetch = function(evt,forceRefresh)
 						{											
 							if (!ug.isObj(ug.data[zoom][x][y]) || ug.isObj(forceRefresh))
 							{															
-								ug.data[zoom][x][y] = {};
+								ug.data[zoom][x][y] = null;
+							}
+							
+							if (ug.data[zoom][x][y] == null)
+							{	
 								var tile = [zoom,x,y];
 								if (tiles.indexOf(tile) < 0)
 								{
@@ -230,7 +241,11 @@ ol.utfGrid.prototype.fetch = function(evt,forceRefresh)
 						{											
 							if (!ug.isObj(ug.data[zoom][x][y]) || ug.isObj(forceRefresh))
 							{															
-								ug.data[zoom][x][y] = {};
+								ug.data[zoom][x][y] = null;
+							}
+							
+							if (ug.data[zoom][x][y] == null)
+							{	
 								var tile = [zoom,x,y];
 								if (tiles.indexOf(tile) < 0)
 								{
@@ -275,28 +290,34 @@ ol.utfGrid.prototype.fetch = function(evt,forceRefresh)
 							function(jsonp,params,request){					
 								var dug = params[0];
 								var tile = params[1];
-								dug.data[tile[0]][tile[1]][tile[2]] = eval(jsonp);
+								if (jsonp.substr(0,5) == 'grid(')
+								{
+									dug.data[tile[0]][tile[1]][tile[2]] = JSON.parse(jsonp.substr(5,jsonp.length-6));
+								}
 								
 								if (dug.isObj(dug.data[tile[0]][tile[1]][tile[2]]))
 								{
-									if (dug.data[tile[0]][tile[1]][tile[2]]["keys"].length > 1 && dug.render)
-									{						
-										dug.renderPoint(tile);						
+									if (dug.data[tile[0]][tile[1]][tile[2]] != null)
+									{
+										if (dug.data[tile[0]][tile[1]][tile[2]]["keys"].length > 1 && dug.render)
+										{						
+											dug.renderPoint(tile);						
+										}
 									}
 								}
 								
-								if (ug.finishEvent != null && (tile == tiles[tiles.length-1] || tiles.length == 0 ) )
+								if (dug.finishEvent != null && (tile == tiles[tiles.length-1] || tiles.length == 0 ) )
 								{									
-									ug.finishEvent(ug);																		
+									dug.finishEvent(ug);																		
 								}
 							},
 							function(jsonp,params,request){												
 								var dug = params[0];
 								var tile = params[1];								
 								setTimeout(function () {								
-									if (ug.finishEvent != null && (tile == tiles[tiles.length-1] || tiles.length == 0) && request.status == 0)
+									if (dug.finishEvent != null && (tile == tiles[tiles.length-1] || tiles.length == 0) && request.status == 0)
 									{
-										ug.finishEvent(ug);
+										dug.finishEvent(ug);
 									}
 								},5000);
 							},
@@ -348,6 +369,7 @@ ol.utfGrid.prototype.lonlat2tile = function(lonlat,zoom)
 	return [Math.floor(x),Math.floor(y),xp,yp]; 
 };
 
+
 ol.utfGrid.prototype.getData = function(lonlat,ug) {	
 	ug = (typeof ug != "undefined"?ug:this);
 	var zoom = this.map.getView().getZoom();
@@ -367,8 +389,8 @@ ol.utfGrid.prototype.getData = function(lonlat,ug) {
 	{			
 		try {				
 			code = json.grid[g[3]].substr(g[2],1).charCodeAt(0);
-			if (code >= 93) { code--};
-			if (code >= 35) { code--};
+			if (code >= 93) { code --;}
+			if (code >= 35) { code --;}
 			code -= 32;
 			
 			var d = json.data[json.keys[code]];		
@@ -394,8 +416,8 @@ ol.utfGrid.prototype.renderPoint = function(tile) {
 	
 	var nocode = " ";
 	nocode = nocode.charCodeAt(0);
-	if (nocode >= 93) { nocode--};
-	if (nocode >= 35) { nocode--};
+	if (nocode >= 93) { nocode --;}
+	if (nocode >= 35) { nocode --;}
 	nocode -= 32;
 			
 	for (var yp=0 ;yp < this.base;yp ++)
@@ -405,8 +427,8 @@ ol.utfGrid.prototype.renderPoint = function(tile) {
 		{
 			var xval = yval.substr(xp,1);
 			var code = xval.charCodeAt(0);						
-			if (code >= 93) { code--};
-			if (code >= 35) { code--};
+			if (code >= 93) { code --;}
+			if (code >= 35) { code --;}
 			code -= 32;
 			
 			if (code != nocode)
@@ -435,9 +457,10 @@ ol.utfGrid.prototype.renderPoint = function(tile) {
 						} 						
 					});					
 					Data.zoom = zoom;
+					Data.resolution = ug.map.getView().getResolution();
 					Data.geometry = new ol.geom.Point(ol.proj.transform([lon,lat], 'EPSG:4326', 'EPSG:3857'));
-						var iconFeature = new ol.Feature(Data);							
-						iconFeature.setId(Data.gid);						
+					var iconFeature = new ol.Feature(Data);							
+					iconFeature.setId(Data.gid);						
 					
 					if (vectorLayer != null)					
 					{
@@ -445,16 +468,25 @@ ol.utfGrid.prototype.renderPoint = function(tile) {
 						if (oldf != null)
 						{
 							//console.log(oldf.get('zoom'),zoom);
+							var maxz = Math.min(oldf.get('maxzoom'),zoom);
+							oldf.set('maxzoom',maxz);
 							if (oldf.get('zoom') < zoom)
-							{
-								vectorLayer.getSource().removeFeature(oldf);
-								vectorLayer.getSource().addFeature(iconFeature);														
+							{								
+								oldf.set('zoom',Data.zoom);
+								oldf.set('resolution',Data.resolution);
+								oldf.setGeometry(Data.geometry);
+								//iconFeature.set('maxzoom',maxz);
+								//vectorLayer.getSource().removeFeature(oldf);
+								//vectorLayer.getSource().addFeature(iconFeature);																
+								ug.map.render();
 							}
 						}
 						else
-						{
-							vectorLayer.getSource().addFeature(iconFeature);
+						{							
+							iconFeature.set('maxzoom',zoom);
+							vectorLayer.getSource().addFeature(iconFeature);							
 						}
+						
 																		
 						
 					}
@@ -485,3 +517,4 @@ ol.utfGrid.prototype.onMove = function(evt) {
 	}			
 	//console.log(lonlat,data[0]);	
 };	
+/**/ 

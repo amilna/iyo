@@ -109,8 +109,8 @@ if ($module->enableUpload)
 					{MAP id:1}
 				</code>
 				<h5><?= Yii::t("app","Adding json var from Data with ID 1")?></h5>
-				<code>
-					{DATA sql:"SELECT count(1) FROM {{%iyo_data_1}} WHERE gid > :gid" values:{":gid":1} var:tes}
+				<code>					
+					{DATA id:1 query:{"select":"j8.name as name,count(1) as total,ST_AsGeoJSON(j8.the_geom, cast(4 as integer), cast(0 as integer)) as geom","from":"1","leftJoins":[{"table":"8","on":"t._8_gid = j8.gid","params":{}}],"where":{"condition":"j8.remarks = :remarks","params":{":remarks":"tes"}},"groupBy":"j8.name","orderBy":"j8.name"} var:tes}
 				</code>	
 			</div>
 			

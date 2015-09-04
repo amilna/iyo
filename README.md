@@ -4,7 +4,7 @@ Integration of Yii and OpenLayers
 
 Require
 -------
-gdal-bin, postgis, proj, libmapnik2, mapnik-utils, nodejs
+gdal-bin, postgis, proj, libmapnik2, mapnik-utils, python-webpy, python-flup, python-openssl, nodejs (optional), php5-sqlite, php5-pgsql
 
 Installation
 ------------

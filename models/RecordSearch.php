@@ -234,9 +234,12 @@ class RecordSearch extends Record
 			$str = "";
 			foreach ($types['string'] as $s)
 			{
-				$str .= ($str == ""?"":",").$s[0];
+				if ($s[0] != $geom_col)
+				{
+					$str .= ($str == ""?"":",").$s[0];
+				}
 			}
-			
+							
 			$query->andFilterWhere(["like","lower(concat($str))",strtolower($this->term)]);
 		}
 		

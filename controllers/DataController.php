@@ -146,6 +146,23 @@ class DataController extends Controller
 				{
 					$metadata["srcfile"] = $post['filesrc'];
 				}
+				
+				if ($model->type == 6 )
+				{
+					
+					if (!isset($metadata["tilename"]))
+					{
+						$metadata["tilename"] = $model->title;	
+					}
+					else
+					{
+						if (empty($metadata["tilename"]))
+						{
+							$metadata["tilename"] = $model->title;	
+						}
+					}										
+					$metadata["tilename"] = preg_replace('/[^a-zA-Z0-9]/','_',strtolower($metadata["tilename"]));
+				}
 				$model->metadata = json_encode($metadata);
 				
 				if ($model->save()) 
@@ -186,6 +203,24 @@ class DataController extends Controller
 				{
 					$metadata["srcfile"] = $post['filesrc'];
 				}
+				
+				if ($model->type == 6 )
+				{
+					
+					if (!isset($metadata["tilename"]))
+					{
+						$metadata["tilename"] = $model->title;	
+					}
+					else
+					{
+						if (empty($metadata["tilename"]))
+						{
+							$metadata["tilename"] = $model->title;	
+						}
+					}										
+					$metadata["tilename"] = preg_replace('/[^a-zA-Z0-9]/','_',strtolower($metadata["tilename"]));
+				}
+				
 				$model->metadata = json_encode($metadata);
 				
 				if ($model->save()) 

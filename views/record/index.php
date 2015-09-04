@@ -61,7 +61,20 @@ $labels = $data->attributeLabels();
 		
 		if(($key = array_search("gid", $columns)) !== false) {
 			unset($columns[$key]);
-		}						
+		}
+		
+		$cols = [];
+		$mcols = json_decode($data->metadata);
+		$n = 0;
+				
+		foreach ($mcols->columns as $mcol)
+		{
+			if ($n < 5 && in_array($mcol->name,$columns))
+			{								
+				$cols[] = $mcol->name;
+				$n += 1;	
+			}
+		}
     ?>
 
 
@@ -93,7 +106,7 @@ $labels = $data->attributeLabels();
 		],
 		'toolbar' => [
 			['content'=>				
-				Html::a('<i class="glyphicon glyphicon-repeat"></i>', ['index'], ['data-pjax'=>false, 'class' => 'btn btn-default', 'title'=>Yii::t('app', 'Reset Grid')])
+				Html::a('<i class="glyphicon glyphicon-repeat"></i>', ['index','data'=>$data->id], ['data-pjax'=>false, 'class' => 'btn btn-default', 'title'=>Yii::t('app', 'Reset Grid')])
 			],
 			'{export}',
 			'{toggleData}'
@@ -119,7 +132,8 @@ $labels = $data->attributeLabels();
         'filterModel' => $searchModel,
         'columns' => array_merge(
             [['class' => 'kartik\grid\SerialColumn']],
-			$columns,
+			//$columns,
+			$cols,
             /*'id',
             'title',
             'description',

@@ -22,13 +22,18 @@ sA.Map = function(arrObj_options) {
 		this.geom_col = options.geom_col;
 	}
 	
+	this.editable = false;
+	if (this.isObj(options.editable)) {
+		this.editable = options.editable;
+	}
 		
 	if (this.isObj(options.init)) {
 		this.init = options.init;
 	}		
 	
-	this.zooms = [(this.isObj(this.init.zoom)?this.init.zoom:5)];
-	this.centers = [(this.isObj(this.init.center)?this.init.center:[117, -2])];
+	this.zooms = [];//[(this.isObj(this.init.zoom)?this.init.zoom:5)];
+	this.centers = [];//[(this.isObj(this.init.center)?this.init.center:[117, -2])];
+	this.sublayers = [];
 	
 	this.minZoom = 0;
 	if (this.isObj(options.minZoom)) {
@@ -141,11 +146,11 @@ sA.Map = function(arrObj_options) {
 	var baseMap = this.baseMaps[this.baseIndex];
 	var url = baseMap.url;
 	
+	var urls = [];
 	var m = url.match(/\[([a-zA-Z0-9_\,]+)\]/);			
 	if (m != null)
 	{				
-		var subs = m[1].split(",");
-		var urls = [];
+		var subs = m[1].split(",");		
 		for (var s=0;s<subs.length;s++)
 		{
 			var u = url.replace("[" + m[1] + "]",subs[s]);			
@@ -177,9 +182,9 @@ sA.Map = function(arrObj_options) {
 	this.map = new ol.Map({
 		//interactions: ol.interaction.defaults().extend([select, modify]),	
 		view: new ol.View({
-			center: ol.proj.transform(this.centers[0],
+			center: ol.proj.transform((this.isObj(this.init.center)?this.init.center:[117, -2]),
 			  "EPSG:4326","EPSG:3857"),
-			zoom: this.zooms[0],
+			zoom: (this.isObj(this.init.zoom)?this.init.zoom:5),
 			projection:"EPSG:3857",
 			minZoom: this.minZoom,
 			maxZoom: this.maxZoom
@@ -213,12 +218,13 @@ sA.Map = function(arrObj_options) {
 	
 	var map = this.map;
 	map.sai = this;		
+	map.on('pointermove', this.mapOnMouseMove);
 	
 	this.addBaseMap();
 	
 	for (var l=0;l<this.layers.length;l++)
 	{		
-		this.addLayer(this.layers[l]);		
+		this.addLayer(this.layers[l]);				
 	}		
 		
 	this.mapOCkey = this.map.on("click", function(evt) {
@@ -238,6 +244,7 @@ sA.Map = function(arrObj_options) {
 sA.Map.prototype = Object.create(sA.prototype);
 sA.Map.prototype.constructor = sA.Map;
 
+
 sA.Map.prototype.addBaseMap = function() {	
 	
 	for (var b=0;b<this.baseMaps.length;b++)
@@ -245,11 +252,11 @@ sA.Map.prototype.addBaseMap = function() {
 		var baseMap = this.baseMaps[b];
 		var url = baseMap.url;
 		
+		var urls = [];
 		var m = url.match(/\[([a-zA-Z0-9_\,]+)\]/);			
 		if (m != null)
 		{				
-			var subs = m[1].split(",");
-			var urls = [];
+			var subs = m[1].split(",");			
 			for (var s=0;s<subs.length;s++)
 			{
 				var u = url.replace("[" + m[1] + "]",subs[s]);			
@@ -294,7 +301,7 @@ sA.Map.prototype.addLayer = function(lconf) {
 			name : lconf.name,	
 			isbase : false,
 			source: new ol.source.XYZ({			
-				urls: lconf.urls
+				urls: [lconf.urls[0]]
 			})
 		});		
 		layer.conf = lconf;
@@ -305,35 +312,48 @@ sA.Map.prototype.addLayer = function(lconf) {
 		this.initUiLayer(layer);
 		this.initUiLegend(layer);
 		
-		if (this.isObj(lconf.fields))
+		var mkutf = false;
+		for (key in lconf)
 		{
-			if (lconf.fields.length > 0)
+			if (key.substr(0,6) == 'fields')
 			{
-				var urls = [];
-				for (var u=0;u<lconf.urls.length;u++)
-				{
-					urls.push(lconf.urls[u].replace(".png",".json"));
-				}
-				
-				var utfGrid = new ol.utfGrid({
-					name: lconf.name,								
-					urls: urls
-				});
-				
-				utfGrid.layer = layer;
-				utfGrid.onMove = this.mapOnMouseMove;
-				utfGrid.startEvent = this.wait;
-				utfGrid.finishEvent = this.unwait;
-				utfGrid.addTo(this.map);
-				
-				this.utfGrids.push(utfGrid);
-				layer.utfGrid = utfGrid;				
+				mkutf = true;	
 			}
+		}
+		
+		if (mkutf)
+		{			
+			var urls = [];
+			//for (var u=0;u<lconf.urls.length;u++)
+			for (var u=lconf.urls.length-1;u>=0;u--)
+			{
+				urls.push(lconf.urls[u].replace(".png",".json"));
+			}
+		
+			var utfGrid = new ol.utfGrid({
+				name: lconf.name,								
+				urls: [urls[0]]
+			});
+			
+			utfGrid.layer = layer;
+			utfGrid.onMove = this.mapOnMouseMove;
+			utfGrid.startEvent = this.wait;
+			utfGrid.finishEvent = this.unwait;
+			utfGrid.addTo(this.map);
+			
+			this.utfGrids.push(utfGrid);
+			layer.utfGrid = utfGrid;							
 		}		
 	}
 	else if	(lconf.type == "geojson")
 	{
-		var urls = lconf.urls;
+		var urls = [];
+		for (var u=lconf.urls.length-1;u>=0;u--)
+		{
+			urls.push(lconf.urls[u]);
+		}
+		//console.log(urls);
+		
 		var isjson = false;
 		if (urls[0].replace(".json") != urls[0])
 		{
@@ -359,7 +379,21 @@ sA.Map.prototype.addLayer = function(lconf) {
 			name : lconf.name,
 			source : source,
 			style : function(feature, resolution) {
-						return [sai.mkStyle(feature,olayer)];						
+												
+						var styles = [];
+						var resStyle = sai.mkResStyle(feature, sai.map.getView().getResolution());
+						var dStyle = sai.mkStyle(feature,olayer);
+						if (resStyle)
+						{
+							styles.push(resStyle);
+						}						
+						
+						if (dStyle)
+						{
+							styles.push(dStyle);
+						}
+						
+						return styles;	
 				}	
 		});	
 		layer.conf = lconf;
@@ -370,11 +404,20 @@ sA.Map.prototype.addLayer = function(lconf) {
 		this.initUiLayer(layer);
 		this.initUiLegend(layer);
 		
-		if (lconf.fields.length > 0 && isjson)
+		var mkutf = false;
+		for (key in lconf)
+		{
+			if (key.substr(0,6) == 'fields')
+			{
+				mkutf = true;	
+			}
+		}		
+		
+		if (mkutf && isjson)
 		{						
 			var utfGrid = new ol.utfGrid({
 				name: lconf.name,								
-				urls: urls,
+				urls: [urls[0]],
 				render:true,
 				base:(this.isObj(lconf.resolution)?256/parseInt(lconf.resolution):64)
 			});
@@ -390,7 +433,62 @@ sA.Map.prototype.addLayer = function(lconf) {
 		}
 		
 	}
+	else if (lconf.type == "rastertile")
+	{		
+		for (var e=0;e<lconf.epsgs.length;e++)
+		{						
+			
+			var layer = new ol.layer.Tile({
+				name : lconf.name+'~'+lconf.epsgs[e]['epsg'],	
+				isbase : false,
+				source: new ol.source.XYZ({			
+					//urls: [lconf.urls[0].replace('{epsgs}',lconf.epsgs[e]['epsg'])+'?r=123']
+					urls: [lconf.urls[0].replace('{epsgs}',lconf.epsgs[e]['epsg'])]
+				})
+			});		
+			layer.conf = lconf;
+			layer.setVisible(this.isObj(lconf.visible)?lconf.visible:true);
+			layer.setOpacity(this.isObj(lconf.opacity)?lconf.opacity:1);
+			
+			this.map.addLayer(layer);		
+			this.initUiLayer(layer);			
+		}		
+	}
 };
+
+sA.Map.prototype.mkResStyle = function(feature, resolution, sai) {	
+	var sai = (typeof sai == "undefined"?this:sai);
+	var oSbg = false;
+	
+	if (sai.isObj(feature.get('resolution')))
+	{									
+		var radius = Math.ceil(feature.get('resolution')/resolution)*(Math.max(1,sai.map.getView().getZoom()-feature.get('zoom')))*4;		
+		oSbg = new ol.style.Style({			
+			image : new ol.style.Circle({
+				radius: radius,								  
+				fill: new ol.style.Fill({
+					color: [0,0,0,0.1]
+				}),
+				stroke: new ol.style.Stroke({
+					color: [255,255,255,0.2],
+					width: 1
+				})
+			})
+		});	
+				
+	}	
+	
+	if (sai.isObj(feature.get('maxzoom')))
+	{
+		if (feature.get('maxzoom') > sai.map.getView().getZoom())
+		{
+			oSbg = false;
+		}		
+	}
+	
+	return  oSbg;
+	
+};	
 
 sA.Map.prototype.initUiBaseMap = function(layer) {	
 		
@@ -398,11 +496,12 @@ sA.Map.prototype.initUiBaseMap = function(layer) {
 	var lconf = layer.conf;
 	
 	var url = lconf.url;		
+	var urls = [];
+	
 	var m = url.match(/\[([a-zA-Z0-9_\,]+)\]/);			
 	if (m != null)
 	{				
-		var subs = m[1].split(",");
-		var urls = [];
+		var subs = m[1].split(",");		
 		for (var s=0;s<subs.length;s++)
 		{
 			var u = url.replace("[" + m[1] + "]",subs[s]);			
@@ -438,6 +537,41 @@ sA.Map.prototype.initUiBaseMap = function(layer) {
 	});			
 };	
 
+
+sA.Map.prototype.mapSetLayers = function(layersname) {
+	var sai = this;
+	sai.map.getLayers().forEach(function (lyr) {													
+		if (sai.isObj(lyr.get('name')))
+		{
+			if (lyr.get('isbase') !== true)
+			{
+				lyr.setVisible(false);
+				var layid = "layer_"+lyr.get('name').toLowerCase().replace(/[^a-zA-Z0-9]/g,"_");
+				$("#" + layid +" .iyo-layer-legend").addClass("iyo-box-unshow");
+				$("#" + layid +" .iyo-layer-legend").addClass("noprint");
+				$("#" + layid +" .iyo-layer-classes").addClass("hidden");
+				$("#" + layid +" .iyo-layer-tools-visibility").removeClass("iyo-box-show");
+			}
+			
+		}
+		if (sai.inArray(lyr.get('name'),layersname) >= 0) {							
+			lyr.setVisible(true);
+			var layid = "layer_"+lyr.get('name').toLowerCase().replace(/[^a-zA-Z0-9]/g,"_");
+			$("#" + layid +" .iyo-layer-legend").removeClass("iyo-box-unshow");
+			$("#" + layid +" .iyo-layer-legend").removeClass("noprint");
+			$("#" + layid +" .iyo-layer-classes").removeClass("hidden");
+			$("#" + layid +" .iyo-layer-tools-visibility").addClass("iyo-box-show");
+			
+			if (sai.isObj(lyr.utfGrid))
+			{
+				var evt = {map:sai.map};
+				lyr.utfGrid.fetch(evt);
+			}
+		} 						
+	});	
+	
+};
+
 sA.Map.prototype.initUiLegend = function(layer) {	
 	var map = this.map;	
 	var lconf = layer.conf;
@@ -448,99 +582,127 @@ sA.Map.prototype.initUiLegend = function(layer) {
 		for (var r=0;r<lconf.rules.length;r++)
 		{
 			var rule = lconf.rules[r];
-			var html = $("#iyo-template-uilayerclass").html();
-			html = html.replace("{cid}",layid+"_class_"+r);			
-			html = html.replace("{class}",this.isObj(rule.name)?rule.name:lconf.name);
-									
-			$("#" + layid +" .iyo-layer-classes").append(html);
-			var ratw = Math.floor($("#" + layid+"_class_"+r+ " .iyo-layer-class-symbol").width()/10)*10;			
-			var rath = Math.floor($("#" + layid+"_class_"+r+ " .iyo-layer-class-symbol").height()/10)*10;			
+			var legendType = lconf.geomtype;
+			if (this.isObj(rule.legendType))
+			{
+				legendType = rule.legendType;
+				//console.log(legendType);
+			}						
 			
-			if (this.inArray(lconf.geomtype,['Polygon','MultiPolygon']) >= 0)
+			if (legendType)
 			{
-				var img = '<svg preserveAspectRatio="xMinYMin meet" viewBox="0 0 160 80"><rect x="10" y="10" rx="12" ry="12" width="140" height="60" style="fill:none;stoke:none;"/>/svg>';				
-				$("#" + layid+"_class_"+r+ " .iyo-layer-class-symbol").append(img);					
-			}
-			else if (this.inArray(lconf.geomtype,['LineString','MultiLineString']) >= 0)
-			{
-				var img = '<svg preserveAspectRatio="xMinYMin meet" viewBox="0 0 160 80"><polygon points="0,40 10,31 20,25 30,22 40,21 50,22 60,25 70,31 80,40 90,49 100,55 110,58 120,59 130,58 140,55 150,49 160,40" style="fill:none;stoke:none;"/>';
-				img += '<polyline points="0,40 10,31 20,25 30,22 40,21 50,22 60,25 70,31 80,40 90,49 100,55 110,58 120,59 130,58 140,55 150,49 160,40" style="fill:none;stoke:none;"/></svg>';
-				$("#" + layid+"_class_"+r+ " .iyo-layer-class-symbol").append(img);					
-			}			
-			
-			if (this.isObj(rule.polygonSymbolizer))
-			{
-				var fill = this.isObj(rule.polygonSymbolizer.fill)?rule.polygonSymbolizer.fill:"inherit";
-				var fillOpacity = this.isObj(rule.polygonSymbolizer.fillOpacity)?rule.polygonSymbolizer.fillOpacity:"inherit";								
-								
-				if (this.inArray(lconf.geomtype,['Polygon','MultiPolygon']) >= 0)
-				{					
-					$("#" + layid+"_class_"+r+ " .iyo-layer-class-symbol svg rect").css({"fill":fill,"fill-opacity":parseFloat(fillOpacity)});
-				}
-				else if (this.inArray(lconf.geomtype,['LineString','MultiLineString']) >= 0)
-				{				
-					$("#" + layid+"_class_"+r+ " .iyo-layer-class-symbol svg polygon").css({"fill":fill,"fill-opacity":parseFloat(fillOpacity)});
-				}				
-			}
-			
-			if (this.isObj(rule.lineSymbolizer))
-			{
-				var stroke = this.isObj(rule.lineSymbolizer.stroke)?rule.lineSymbolizer.stroke:"inherit";
-				var strokeOpacity = this.isObj(rule.lineSymbolizer.strokeOpacity)?rule.lineSymbolizer.strokeOpacity:"inherit";								
-				var strokeWidth = this.isObj(rule.lineSymbolizer.strokeWidth)?rule.lineSymbolizer.strokeWidth:"inherit";								
-				
-				if (this.inArray(lconf.geomtype,['Polygon','MultiPolygon']) >= 0)
-				{				
-					$("#" + layid+"_class_"+r+ " .iyo-layer-class-symbol svg rect").css({"stroke":stroke,"stroke-opacity":parseFloat(strokeOpacity),"stroke-width":parseInt(strokeWidth)*(160/ratw)});
-				}
-				else if (this.inArray(lconf.geomtype,['LineString','MultiLineString']) >= 0)
-				{									
-					$("#" + layid+"_class_"+r+ " .iyo-layer-class-symbol svg polyline").css({"stroke":stroke,"stroke-opacity":parseFloat(strokeOpacity),"stroke-width":parseInt(strokeWidth)*(160/ratw)});
-				}				
-			}
-			
-			if (this.isObj(rule.style))
-			{
-				var scale = this.isObj(rule.style.scale)?rule.style.scale:false;
-				var opacity = this.isObj(rule.style.opacity)?rule.style.opacity:1;								
-				var src = this.isObj(rule.style.src)?rule.style.src:false;								
-				var strokeWidth = this.isObj(rule.style.strokeWidth)?rule.style.strokeWidth:false;
-				var strokeColor = this.isObj(rule.style.strokeColor)?rule.style.strokeColor:false;
-				var fillColor = this.isObj(rule.style.fillColor)?rule.style.fillColor:false;								
-				var radius = this.isObj(rule.style.radius)?parseInt(rule.style.radius):false;								
-				var rc = r;
-				
-				//console.log(rule.style,lconf.geomtype);
-				
-				if (this.inArray(lconf.geomtype,['Point','MultiPoint']) >= 0)
-				{					
-					if (src)
-					{
-						var newImg = new Image();					
-						newImg.onload = function(){
-							var h = newImg.height*scale;	
-							var w = newImg.width*scale;		
+				var html = $("#iyo-template-uilayerclass").html();
+				html = html.replace("{cid}",layid+"_class_"+r);			
+				html = html.replace("{class}",this.isObj(rule.name)?rule.name:lconf.name);
 										
-							var img = '<img src="'+src+'" width='+w+' height='+h+' style="opacity:'+opacity+';margin:auto;display:block;"/>';						
-							$("#" + layid+"_class_"+rc+ " .iyo-layer-class-symbol").html(img);
-						};
-						newImg.src = src;
+				$("#" + layid +" .iyo-layer-classes").append(html);
+				var ratw = Math.floor($("#" + layid+"_class_"+r+ " .iyo-layer-class-symbol").width()/10)*10;			
+				var rath = Math.floor($("#" + layid+"_class_"+r+ " .iyo-layer-class-symbol").height()/10)*10;			
+				
+				if (this.inArray(legendType,['Polygon','MultiPolygon']) >= 0)
+				{
+					var img = '<svg preserveAspectRatio="xMinYMin meet" viewBox="0 0 160 80"><rect x="10" y="10" rx="12" ry="12" width="140" height="60" style="fill:none;stoke:none;"/>/svg>';				
+					$("#" + layid+"_class_"+r+ " .iyo-layer-class-symbol").append(img);					
+				}
+				else if (this.inArray(legendType,['LineString','MultiLineString']) >= 0)
+				{
+					var img = '<svg preserveAspectRatio="xMinYMin meet" viewBox="0 0 160 80"><polygon points="0,40 10,31 20,25 30,22 40,21 50,22 60,25 70,31 80,40 90,49 100,55 110,58 120,59 130,58 140,55 150,49 160,40" style="fill:none;stoke:none;"/>';
+					img += '<polyline points="0,40 10,31 20,25 30,22 40,21 50,22 60,25 70,31 80,40 90,49 100,55 110,58 120,59 130,58 140,55 150,49 160,40" style="fill:none;stoke:none;"/></svg>';
+					$("#" + layid+"_class_"+r+ " .iyo-layer-class-symbol").append(img);					
+				}			
+				
+				if (this.isObj(rule.polygonSymbolizer))
+				{
+					var fill = this.isObj(rule.polygonSymbolizer.fill)?rule.polygonSymbolizer.fill:"inherit";
+					var fillOpacity = this.isObj(rule.polygonSymbolizer.fillOpacity)?rule.polygonSymbolizer.fillOpacity:"1";																						
+									
+					if (this.inArray(legendType,['Polygon','MultiPolygon']) >= 0)
+					{					
+						$("#" + layid+"_class_"+r+ " .iyo-layer-class-symbol svg rect").css({"fill":fill,"fill-opacity":parseFloat(fillOpacity)});
 					}
-					else
+					else if (this.inArray(legendType,['LineString','MultiLineString']) >= 0)
+					{				
+						$("#" + layid+"_class_"+r+ " .iyo-layer-class-symbol svg polygon").css({"fill":fill,"fill-opacity":parseFloat(fillOpacity)});
+					}				
+				}
+				
+				if (this.isObj(rule.lineSymbolizer))
+				{
+					var stroke = this.isObj(rule.lineSymbolizer.stroke)?rule.lineSymbolizer.stroke:"inherit";
+					var strokeOpacity = this.isObj(rule.lineSymbolizer.strokeOpacity)?rule.lineSymbolizer.strokeOpacity:"1";								
+					var strokeWidth = this.isObj(rule.lineSymbolizer.strokeWidth)?rule.lineSymbolizer.strokeWidth:"1";				
+					var strokeDasharray = this.isObj(rule.lineSymbolizer.strokeDasharray)?rule.lineSymbolizer.strokeDasharray:"inherit";
+					if (strokeDasharray != 'inherit')
 					{
-						var img = '<svg><circle cx="'+(radius+10)+'" cy="'+(radius+10)+'" r="'+(radius)+'" style="fill-opacity:'+parseFloat(opacity)+';stroke-opacity:'+parseFloat(opacity)+';stroke-width:'+parseInt(strokeWidth)+';fill:'+(fillColor?fillColor:'#fff')+';stroke:'+(strokeColor?strokeColor:'#000')+';"/></svg>';
-						$("#" + layid+"_class_"+rc+ " .iyo-layer-class-symbol").html(img);
-						$("#" + layid+"_class_"+rc+ " .iyo-layer-class-symbol,#" + layid+"_class_"+rc+ " .iyo-layer-class-symbol svg").css("height",Math.max((radius+10)*2,rath));
+						var sdas = strokeDasharray.split(',');
+						strokeDasharray = '';
+						for (var sd = 0;sd < sdas.length;sd++)
+						{
+							strokeDasharray += (strokeDasharray == ''?'':',')+(parseInt(sdas[sd].replace(/ /,''))*(160/ratw));	
+						}
 					}
+					
+					
+					if (this.inArray(legendType,['Polygon','MultiPolygon']) >= 0)
+					{				
+						$("#" + layid+"_class_"+r+ " .iyo-layer-class-symbol svg rect").css({"stroke":stroke,"stroke-dasharray":strokeDasharray,"stroke-opacity":parseFloat(strokeOpacity),"stroke-width":parseInt(strokeWidth)*(160/ratw)});
+					}
+					else if (this.inArray(legendType,['LineString','MultiLineString']) >= 0)
+					{									
+						$("#" + layid+"_class_"+r+ " .iyo-layer-class-symbol svg polyline").css({"stroke":stroke,"stroke-dasharray":strokeDasharray,"stroke-opacity":parseFloat(strokeOpacity),"stroke-width":parseInt(strokeWidth)*(160/ratw)});
+					}				
 				}
-				else if (this.inArray(lconf.geomtype,['Polygon','MultiPolygon']) >= 0)
-				{					
-					$("#" + layid+"_class_"+r+ " .iyo-layer-class-symbol svg rect").css({"fill":fillColor,"fill-opacity":parseFloat(opacity),"stroke":strokeColor,"stroke-opacity":parseFloat(opacity)});
-				}
-				else if (this.inArray(lconf.geomtype,['LineString','MultiLineString']) >= 0)
-				{				
-					$("#" + layid+"_class_"+r+ " .iyo-layer-class-symbol svg polygon").css({"fill":fillColor,"fill-opacity":parseFloat(opacity)});
-					$("#" + layid+"_class_"+r+ " .iyo-layer-class-symbol svg polyline").css({"stroke":strokeColor,"stroke-opacity":parseFloat(opacity)});
+				
+				if (this.isObj(rule.style))
+				{
+					var scale = this.isObj(rule.style.scale)?rule.style.scale:false;
+					var opacity = this.isObj(rule.style.opacity)?rule.style.opacity:false;								
+					var src = this.isObj(rule.style.src)?rule.style.src:false;								
+					var strokeWidth = this.isObj(rule.style.strokeWidth)?rule.style.strokeWidth:false;
+					var strokeColor = this.isObj(rule.style.strokeColor)?rule.style.strokeColor:false;
+					var fillColor = this.isObj(rule.style.fillColor)?rule.style.fillColor:false;								
+					var radius = this.isObj(rule.style.radius)?parseInt(rule.style.radius):false;								
+					var rc = r;										
+					
+					if (this.inArray(legendType,['Point','MultiPoint']) >= 0)
+					{					
+						if (src)
+						{
+							var newImg = new Image();					
+							newImg.onload = function(){
+								var h = this.height*scale;	
+								var w = this.width*scale;																			
+								var img = '<img src="'+this.src+'" height='+h+' width='+w+' style="'+(opacity?'opacity:'+opacity+';':'')+'margin:auto;display:block;"/>';																		
+								$("#" + this.id+ " .iyo-layer-class-symbol").html(img);
+							};
+							newImg.src = src;						
+							newImg.id = layid+"_class_"+rc;						
+						}
+						else
+						{
+							var img = '<svg><circle cx="'+(radius+10)+'" cy="'+(radius+10)+'" r="'+(radius)+'" style="'+(opacity?'fill-opacity:'+parseFloat(opacity)+';stroke-opacity:'+parseFloat(opacity)+';':'')+'stroke-width:'+parseInt(strokeWidth)+';fill:'+(fillColor?fillColor:'#fff')+';stroke:'+(strokeColor?strokeColor:'#000')+';"/></svg>';
+							$("#" + layid+"_class_"+rc+ " .iyo-layer-class-symbol").html(img);
+							$("#" + layid+"_class_"+rc+ " .iyo-layer-class-symbol,#" + layid+"_class_"+rc+ " .iyo-layer-class-symbol svg").css("height",Math.max((radius+10)*2,rath));
+						}
+					}
+					else if (this.inArray(legendType,['Polygon','MultiPolygon']) >= 0)
+					{					
+						$("#" + layid+"_class_"+r+ " .iyo-layer-class-symbol svg rect").css({"fill":fillColor,"stroke":strokeColor});
+						if (opacity)
+						{
+							$("#" + layid+"_class_"+r+ " .iyo-layer-class-symbol svg rect").css({"fill-opacity":parseFloat(opacity),"stroke-opacity":parseFloat(opacity)});
+						}	
+					}
+					else if (this.inArray(legendType,['LineString','MultiLineString']) >= 0)
+					{				
+						$("#" + layid+"_class_"+r+ " .iyo-layer-class-symbol svg polygon").css({"fill":fillColor});
+						$("#" + layid+"_class_"+r+ " .iyo-layer-class-symbol svg polyline").css({"stroke":strokeColor});
+						if (opacity)
+						{
+							$("#" + layid+"_class_"+r+ " .iyo-layer-class-symbol svg polygon").css({"fill-opacity":parseFloat(opacity)});
+							$("#" + layid+"_class_"+r+ " .iyo-layer-class-symbol svg polyline").css({"stroke-opacity":parseFloat(opacity)});
+						}
+					}
 				}
 			}
 		}	
@@ -559,7 +721,16 @@ sA.Map.prototype.initUiLayer = function(layer) {
 	html = html.replace("{id}",layid);
 	html = html.replace("{name}",lconf.name);
 	
-	$(".iyo-layers").prepend(html);
+	if ($("#" + layid ).length <= 0)
+	{	
+		$(".iyo-layers").prepend(html);
+	}
+	
+	if (!this.editable)
+	{
+		$("#" + layid +" .iyo-layer-tools-more").html('');
+		$("#" + layid +" .iyo-layer-tools-more").css('display','none');
+	}
 	
 	$("#" + layid +" .iyo-layer-legend").bind("click",function(e){		
 				
@@ -697,13 +868,29 @@ sA.Map.prototype.initUiLayer = function(layer) {
 	
 	$("#" + layid +" .iyo-layer-tools-opacity").slider({
 		value:(layer.getOpacity()*100),
-		slide: function( event, ui ) {			
-			layer.setOpacity((ui.value/100));			
+		slide: function( event, ui ) {	
+			var dnames = layer.get('name').split('~');						
+			if (dnames.length > 1)
+			{
+				map.getLayers().forEach(function (lyr) {													
+					if (map.sai.isObj(lyr.get('name')))
+					{
+						if (lyr.get('name').indexOf(dnames[0]+'~') >= 0)
+						{		
+							lyr.setOpacity((ui.value/100));			
+						}
+					}
+				});					
+			}
+			else
+			{
+				layer.setOpacity((ui.value/100));				
+			}
 		}
-	});
+	});		
 	
 	if (this.isObj(lconf.dataId) && !this.isObj(lconf.dataquery))
-	{
+	{		
 		$("#" + layid +" .iyo-layer-tools-editor").on('click',function(e){
 			
 			var button = this;		
@@ -865,6 +1052,8 @@ sA.Map.prototype.initUiLayer = function(layer) {
 	
 	var toogleEditor = function(div) {	
 		
+		delete map.sai.onModify;
+		
 		if (map.sai.isObj(map.sai.draw))
 		{			
 			map.sai.select[1].getFeatures().clear();
@@ -937,6 +1126,7 @@ sA.Map.prototype.initUiLayer = function(layer) {
 				  source: source,
 				  style: map.sai.featureStyle				  
 				});
+				map.sai.layerEditor.salayer = layer;
 				map.addLayer(map.sai.layerEditor);				
 			}
 					
@@ -946,8 +1136,8 @@ sA.Map.prototype.initUiLayer = function(layer) {
 				style: map.sai.editorStyle,
 				toggleCondition:  function(event) {
 					
-					return ol.events.condition.shiftKeyOnly(event) &&
-						ol.events.condition.singleClick(event);
+					return (ol.events.condition.shiftKeyOnly(event) &&
+						ol.events.condition.singleClick(event));
 						
 				}
 			})];
@@ -1040,8 +1230,8 @@ sA.Map.prototype.initUiLayer = function(layer) {
 				
 				deleteCondition: function(event) {
 					
-					return ol.events.condition.shiftKeyOnly(event) &&
-						ol.events.condition.singleClick(event);
+					return (ol.events.condition.shiftKeyOnly(event) &&
+						ol.events.condition.singleClick(event));
 						
 				}
 				
@@ -1056,7 +1246,7 @@ sA.Map.prototype.initUiLayer = function(layer) {
 
 sA.Map.prototype.initUiAttributes = function(f,layer) {	
 		
-	var gid = !this.isObj(f.getId())?null:f.getId();	
+	var gid = (!this.isObj(f.getId())?null:f.getId());	
 	
 	if (gid == null)
 	{
@@ -1101,6 +1291,7 @@ sA.Map.prototype.initUiAttributes = function(f,layer) {
 			geom.getCoordinates(), "EPSG:3857", "EPSG:4326"));
 	}	
 	
+		
 	$("#" + map.sai.id +" .iyo-attributes-message").css("display","none");		
 	$("#" + map.sai.id +" .iyo-attributes-fields").html("<div class='iyo-feature-measure'>" + meas+" </div>");
 	
@@ -1207,7 +1398,7 @@ sA.Map.prototype.initUiAttributes = function(f,layer) {
 				var n = d.getTime();		
 				var url = layer.conf.urls[0];					
 				url = url.replace(/\?r\=(\d+)/g,"");
-				url = url.replace(/\/\{z\}\/\{x\}\/\{y\}\.png/g,"");
+				url = url.replace(/\/\{z\}\/\{x\}\/\{y\}\.([a-z0-9]+)/g,"");
 				url = url+"?r="+n;				
 				map.sai.xhr(url ,function(){
 					
@@ -1233,7 +1424,8 @@ sA.Map.prototype.initUiAttributes = function(f,layer) {
 				}
 				else
 				{	
-					delete layer.utfGrid.data[map.getView().getZoom()];
+					//delete layer.utfGrid.data[map.getView().getZoom()];
+					layer.utfGrid.data = [];
 				}	
 				var evt = {map:map};
 				layer.utfGrid.fetch(evt,true);
@@ -1273,7 +1465,7 @@ sA.Map.prototype.initUiAttributes = function(f,layer) {
 				var n = d.getTime();		
 				var url = layer.conf.urls[0];					
 				url = url.replace(/\?r\=(\d+)/g,"");
-				url = url.replace(/\/\{z\}\/\{x\}\/\{y\}\.png/g,"");
+				url = url.replace(/\/\{z\}\/\{x\}\/\{y\}\.([a-z0-9]+)/g,"");
 				url = url+"?r="+n;				
 				map.sai.xhr(url ,function(){
 					
@@ -1295,7 +1487,8 @@ sA.Map.prototype.initUiAttributes = function(f,layer) {
 				}
 				else
 				{	
-					delete layer.utfGrid.data[map.getView().getZoom()];
+					//delete layer.utfGrid.data[map.getView().getZoom()];
+					layer.utfGrid.data = [];
 				}
 				var evt = {map:map};
 				layer.utfGrid.fetch(evt,true);
@@ -1393,63 +1586,73 @@ sA.Map.prototype.initUiAttributes = function(f,layer) {
 		
 };	
 
-sA.Map.prototype.getStyle = function(featureHighlight) {		
+sA.Map.prototype.getStyle = function(featureHighlight,sai) {		
+	var sai = (typeof sai == "undefined"?this:sai);
 	var style = false;	
-	var conf = (this.isObj(featureHighlight[1].conf)?featureHighlight[1].conf:false);	
+	var conf = (sai.isObj(featureHighlight[1].conf)?featureHighlight[1].conf:false);
+		
 	if (conf)
-	{
-		if (this.isObj(conf.rules))
+	{		
+		if (sai.isObj(conf.rules))
 		{						
 			for (f=0;f<conf.rules.length;f++)
 			{
-				if (this.isObj(conf.rules[f].filter))
-				{
 				
-					var filter = conf.rules[f].filter.match(/^\[([a-z_]+)\] ([\=\>\<\!]+) \'(.*)\'/);	
+				if (sai.isObj(conf.rules[f].filter))
+				{					
+					var tesv = false;
+					var filter = conf.rules[f].filter.match(/^\(\[([a-z0-9_]+)\] (in||not in) \'(-?[0-9]+) - (-?[0-9]+)\'\)/);											
 					if (filter != null)
 					{
 						var field = filter[1];
 						var operator = filter[2];
 						var value = filter[3];
-						var value1 = false;
+						var value1 = filter[4];
+						
+						var tesv = ((operator=="in"?"":"!")+"((["+field+"]>"+value+")&&(["+field+"]<="+value1+"))");
+						var val = "true";
+						if (sai.isObj(prop[field]))
+						{
+							val = prop[field];								
+							val = (!isNaN(parseFloat(val)) && isFinite(val)?val:"'"+val+"'");
+						}
+						tesv = tesv.replace("["+field+"]",val);						
 					}
 					else
-					{
-						var filter = conf.rules[f].filter.match(/^\[([a-z_]+)\] (in||not in) \'(\d+)-(\d+)\'/);	
+					{																								
+						//var tesf = conf.rules[f].filter+' or ('+conf.rules[f].filter+' and [tes] = [tes])';					
+						var tesf = conf.rules[f].filter;
+						var filter = tesf.match(/\[([a-z0-9_]+)\]/g);						
+					
 						if (filter != null)
-						{
-							var field = filter[1];
-							var operator = filter[2];
-							var value = filter[3];
-							var value1 = filter[4];
-						}	
+						{														
+							var prop = featureHighlight[0].getProperties();
+							var tesv = tesf.replace(/=/g,'==').replace(/ or /g,' || ').replace(/ and /g,' && ')+'';	
+							for (var fl=0;fl<filter.length;fl++)
+							{
+								var val = "true";
+								if (sai.isObj(prop[filter[fl].replace('[','').replace(']','')]))
+								{
+									val = prop[filter[fl].replace('[','').replace(']','')];								
+									val = (!isNaN(parseFloat(val)) && isFinite(val)?val:"'"+val+"'");
+								}
+								tesv = tesv.replace(filter[fl],val);
+							}
+						}
+					}	
+						
+					try {
+						var evalv = (eval(tesv));
+					}						
+					catch (e) {
+						var evalv = false;
 					}
 					
-					if (filter != null)
-					{								
-						var prop = featureHighlight[0].getProperties();								
-						if (!value1)
-						{
-							for (key in prop)
-							{
-								if (key == field && (eval(prop[key]+operator+value)))
-								{
-									style = conf.rules[f].style;
-								}
-							}	
-						}
-						else
-						{
-							for (key in prop)
-							{
-								if (key == field && (eval(prop[key]+(operator=="in"?">=":"<")+value)) && (eval(prop[key]+(operator=="in"?"<=":">")+value1)))
-								{
-									style = conf.rules[f].style;
-								}
-							}
-							
-						}
+					if (evalv)
+					{
+						style = conf.rules[f].style;
 					}
+				
 				}														
 			}
 			
@@ -1464,8 +1667,9 @@ sA.Map.prototype.getStyle = function(featureHighlight) {
 	return style;
 };
 
-sA.Map.prototype.mkStyle = function(feature,layer,isHighlight) {		
+sA.Map.prototype.mkStyle = function(feature,layer,isHighlight,sai) {		
 	
+	var sai = (typeof sai == "undefined"?this:sai);
 	var reStyle = false;	
 	
 	var tk = [];
@@ -1476,7 +1680,7 @@ sA.Map.prototype.mkStyle = function(feature,layer,isHighlight) {
 			
 	if (tk.length > 1)
 	{				
-		if (this.isObj(layer.get('name')))
+		if (sai.isObj(layer.get('name')))
 		{
 			reStyle = true;
 		}
@@ -1487,12 +1691,13 @@ sA.Map.prototype.mkStyle = function(feature,layer,isHighlight) {
 		return false;
 	}	
 	else
-	{
-		var dstyle = this.getStyle([feature,layer]);
-		var scale = dstyle.scale+(this.isObj(isHighlight)?0.3:0);
-		var opacity = Math.min(dstyle.opacity+(this.isObj(isHighlight)?0.3:0),1);	
-		var radius = dstyle.radius*(this.isObj(isHighlight)?2:1);
-		var label = this.isObj(dstyle.label)?dstyle.label:false;	
+	{		
+		var dstyle = sai.getStyle([feature,layer],sai);
+		var scale = dstyle.scale+(sai.isObj(isHighlight)?0.3:0);
+		var opacity = Math.min(dstyle.opacity+(sai.isObj(isHighlight)?0.3:0),1);	
+		var radius = dstyle.radius*(sai.isObj(isHighlight)?2:1);
+		var label = sai.isObj(dstyle.label)?dstyle.label:false;	
+		var topacity = Math.min(dstyle.opacity+(sai.isObj(isHighlight)?1:-0.3),1);
 		
 		var labelAttribute = '';
 		if (label)
@@ -1500,8 +1705,104 @@ sA.Map.prototype.mkStyle = function(feature,layer,isHighlight) {
 			labelAttribute = feature.get(label.attribute);
 		}
 		
-		if (this.isObj(dstyle.src))
+		if (!sai.isObj(labelAttribute))
+		{
+			labelAttribute = '';
+		}				
+		
+		var offsetX = sai.isObj(label.offsetX)?label.offsetX:0;
+		var offsetY = sai.isObj(label.offsetY)?label.offsetY:0;
+		var textAlign = sai.isObj(label.textAlign)?label.textAlign:'center';
+		if (sai.isObj(dstyle.src))
 		{							
+			var font = sai.isObj(label.font)?label.font:'12px Calibri,sans-serif';
+			var fontSet = font.match(/(\d+)px ([a-zA-Z0-9\-_ ]+)/);
+			var fontSize = 12;
+			if (fontSet != null)
+			{
+				fontSize = parseInt(fontSet[1]);
+			}
+			var tox = labelAttribute.length*fontSize/2;
+			var tgeo = feature.getGeometry();
+			var mres = sai.map.getView().getResolution();
+			//var tbox = turf.bboxPolygon([-97.52, 35.460, -97.5, 35.468]);
+			if (label && tgeo.getType() == 'Point')
+			{				
+				if (sai.isObj(label.featureOffset))
+				{					
+					var fOs = label.featureOffset[feature.getId()+''];					
+					if (sai.isObj(fOs))
+					{						
+						var dkey = false;
+						for (key in fOs)
+						{
+							if (parseInt(key) <= sai.map.getView().getZoom())
+							{
+								dkey = key;	
+							}							
+						}
+						
+						var lfOs = fOs[dkey+''];
+						if (sai.isObj(lfOs))
+						{	
+							offsetX = lfOs[0];
+							offsetY = lfOs[1];							
+						}
+					}					
+				}								
+				
+				if (sai.isObj(label.featureAlign))
+				{					
+					var fAl = label.featureAlign[feature.getId()+''];					
+					if (sai.isObj(fAl))
+					{						
+						var dkey = false;
+						for (key in fAl)
+						{
+							if (parseInt(key) <= sai.map.getView().getZoom())
+							{
+								dkey = key;	
+							}							
+						}
+						
+						var lfAl = fAl[dkey+''];
+						if (sai.isObj(lfAl))
+						{	
+							textAlign = lfAl;							
+						}
+					}					
+				}
+				/*
+				var tpoi = this.map.getPixelFromCoordinate(tgeo.getCoordinates());
+				var tnox = tox*mres;
+				var isfeat = this.map.forEachFeatureAtPixel([tpoi[0]+tnox,tpoi[1]], function(feature, layer) {			
+					return [feature,layer];
+				});
+				
+				var crds = tgeo.getCoordinates();
+				var tlgeo = new ol.geom.LineString([crds,[crds[0]+tnox,crds[1]]]);
+				var nf = new ol.Feature({
+						  geometry: tlgeo
+						});				
+				
+				var format = new ol.format.GeoJSON();
+				var buffered = turf.buffer(format.writeFeatureObject(nf), fontSize/2*mres, 'meters');
+				//console.log(buffered);								
+				
+				var src = layer.getSource(); 
+				var isInside = false;
+				if (src != null)
+				{
+					fs = src.getFeatures();		
+					for (var u=0;u<fs.length;u++)
+					{
+						isInside = !isInside?turf.inside(format.writeFeatureObject(fs[u]), buffered):true;
+					}	
+				}				
+				console.log(fontSize,labelAttribute,tox,tnox,crds,isInside,buffered,tlgeo);			
+				*/ 
+			}
+			
 			oStyle = new ol.style.Style({
 				image : new ol.style.Icon({				
 					scale:scale,				
@@ -1509,66 +1810,98 @@ sA.Map.prototype.mkStyle = function(feature,layer,isHighlight) {
 					anchor:dstyle.anchor,						
 					src:dstyle.src
 				}),
-				text : label?new ol.style.Text({
+				text : (label?new ol.style.Text({
 					text:labelAttribute,
-					font: this.isObj(label.font)?label.font:'12px Calibri,sans-serif',
-					offsetX: this.isObj(label.offsetX)?label.offsetX:0,				
-					offsetY: this.isObj(label.offsetY)?label.offsetY:0,
-					textAlign: this.isObj(label.textAlign)?label.textAlign:'center',
-					textBaseline: this.isObj(label.textBaseline)?label.textBaseline:'middle',
+					opacity:topacity,	
+					font: sai.isObj(label.font)?label.font:'12px Calibri,sans-serif',
+					offsetX: offsetX,				
+					offsetY: offsetY,
+					textAlign: textAlign,
+					textBaseline: sai.isObj(label.textBaseline)?label.textBaseline:'middle',
 					fill: new ol.style.Fill({
-						color: this.isObj(label.color)?label.color:'#000',							
+						color: sai.isObj(label.color)?label.color:'#000',							
 					}),
 					stroke: new ol.style.Stroke({
-						color: this.isObj(label.strokeColor)?label.strokeColor:'#fff',
-						width: this.isObj(label.strokeWidth)?label.strokeWidth:1
+						color: sai.isObj(label.strokeColor)?label.strokeColor:'#fff',
+						width: sai.isObj(label.strokeWidth)?label.strokeWidth:1
 					})
-				}):undefined
+				}):undefined)
 			});											
 		}
-		else if (this.isObj(dstyle.radius))
+		else if (sai.isObj(dstyle.radius))
 		{							
 			oStyle = new ol.style.Style({
 				image : new ol.style.Circle({
 					radius: radius,				  
 					fill: new ol.style.Fill({
-						color: this.isObj(dstyle.fillColor)?dstyle.fillColor:'#fff',							
+						color: sai.isObj(dstyle.fillColor)?dstyle.fillColor:'#fff',							
 					}),
 					stroke: new ol.style.Stroke({
-						color: this.isObj(dstyle.strokeColor)?dstyle.strokeColor:'#000',
-						width: this.isObj(dstyle.strokeWidth)?dstyle.strokeWidth:1
+						color: sai.isObj(dstyle.strokeColor)?dstyle.strokeColor:'#000',
+						width: sai.isObj(dstyle.strokeWidth)?dstyle.strokeWidth:1
 					})
 				}),
-				text : label?new ol.style.Text({
+				text : (label?new ol.style.Text({
 					text:labelAttribute,
-					font: this.isObj(label.font)?label.font:'12px Calibri,sans-serif',
-					offsetX: this.isObj(label.offsetX)?label.offsetX:0,				
-					offsetY: this.isObj(label.offsetY)?label.offsetY:0,
-					textAlign: this.isObj(label.textAlign)?label.textAlign:'center',
-					textBaseline: this.isObj(label.textBaseline)?label.textBaseline:'middle',
+					font: sai.isObj(label.font)?label.font:'12px Calibri,sans-serif',
+					offsetX: sai.isObj(label.offsetX)?label.offsetX:0,				
+					offsetY: sai.isObj(label.offsetY)?label.offsetY:0,
+					textAlign: sai.isObj(label.textAlign)?label.textAlign:'center',
+					textBaseline: sai.isObj(label.textBaseline)?label.textBaseline:'middle',
 					fill: new ol.style.Fill({
-						color: this.isObj(label.color)?label.color:'#000',							
+						color: sai.isObj(label.color)?label.color:'#000',							
 					}),
 					stroke: new ol.style.Stroke({
-						color: this.isObj(label.strokeColor)?label.strokeColor:'#fff',
-						width: this.isObj(label.strokeWidth)?label.strokeWidth:1
+						color: sai.isObj(label.strokeColor)?label.strokeColor:'#fff',
+						width: sai.isObj(label.strokeWidth)?label.strokeWidth:1
 					})
-				}):undefined
+				}):undefined)
 			});											
 		}
 		else
 		{
 			oStyle = new ol.style.Style();	
 		}
+		
+		if (sai.isObj(feature.get('maxzoom')))
+		{
+			if (feature.get('maxzoom') > sai.map.getView().getZoom())
+			{
+				oStyle = false;
+			}		
+		}	
+		
 		return oStyle;
 	}
 };
 
 sA.Map.prototype.unHighlightFeature = function(featureHighlight,isforced) {			
-	var style = this.mkStyle(featureHighlight[0],featureHighlight[1]);	
-	if (style && (featureHighlight[0] != this.featureOnEdit || this.isObj(isforced) ))
-	{							
-		featureHighlight[0].setStyle(style);
+	
+	if (featureHighlight[0] != this.featureOnEdit || this.isObj(isforced) )
+	{											
+		var sai = this;				
+		var dstyle = function(resolution) {						
+						
+						var styles = [];
+						var resStyle = sai.mkResStyle(this, resolution,sai);
+						var dStyle = sai.mkStyle(this,featureHighlight[1],undefined,sai);
+						if (resStyle)
+						{
+							styles.push(resStyle);
+						}						
+						
+						if (dStyle)
+						{
+							styles.push(dStyle);
+						}
+						
+						return styles;	
+				};
+		
+		if (dstyle != [])
+		{
+			featureHighlight[0].setStyle(dstyle);						
+		}
 	}
 };	
 
@@ -1635,23 +1968,27 @@ sA.Map.prototype.getUtfGridData = function(evt) {
 		}
 	}
 	var data = [];
-	var utfGrids = evt.map.utfGrids;
-		
-	for (var g=0;g<utfGrids.length;g++)
+	
+	if (sai.isObj(evt.map.utfGrids))
 	{
-		var ug = utfGrids[g];				
-		if (!ug.render && ug.layer.getVisible())
+		var utfGrids = evt.map.utfGrids;		
+			
+		for (var g=0;g<utfGrids.length;g++)
 		{
-			var flonlat = ug.fixLonlat(lonlat);
-			var d = ug.getData(flonlat);						
-									
-			if (d != null)
-			{				
-				data.push([ug.layer,d]);				
-			}			
-		}
-	}
-		
+			var ug = utfGrids[g];				
+			if (!ug.render && ug.layer.getVisible())
+			{
+				var flonlat = ug.fixLonlat(lonlat);
+				var d = ug.getData(flonlat);						
+										
+				if (d != null)
+				{				
+					data.push([ug.layer,d]);				
+				}			
+			}
+		}		
+	}	
+	
 	if (feature != null && sai.isObj(sai.featureHighlight))
 	{				
 		var prop = feature.getProperties();			
@@ -1663,18 +2000,74 @@ sA.Map.prototype.getUtfGridData = function(evt) {
 
 sA.Map.prototype.highlightFeature = function(feature,layer) {	
 	
-	this.featureHighlight = [feature,layer];	
-	var style = this.mkStyle(feature,layer,true);		
-	if (style)
-	{							
-		feature.setStyle(style);
+	this.featureHighlight = [feature,layer];		
+		
+	var sai = this;				
+	var dstyle = function(resolution) {						
+					
+					var styles = [];
+					var resStyle = sai.mkResStyle(this, resolution,sai);
+					var dStyle = sai.mkStyle(this,layer,true,sai);
+					if (resStyle)
+					{
+						styles.push(resStyle);
+					}						
+					
+					if (dStyle)
+					{
+						styles.push(dStyle);
+					}
+					
+					return styles;	
+			};
+	
+	if (dstyle != [])
+	{
+		feature.setStyle(dstyle);
 	}
-
+	
 	return this.featureHighlight;
 };	
 
-sA.Map.prototype.mapPanZoom = function(newCenter,newZoom,offsetScale) {	
+sA.Map.prototype.mapPrevZoom = function() {	
+	map = this.map;
+	map.sai.popup.css("display","none");
+	var closer = map.sai.popup.find(".iyo-popup-closer");
+	closer.blur();		
+			
+	if (map.sai.zooms.length > 1)
+	{
+		map.sai.mapSetLayers(map.sai.sublayers[map.sai.sublayers.length-2]);
+		map.sai.mapPanZoom(map.sai.centers[map.sai.centers.length-2],map.sai.zooms[map.sai.zooms.length-2]);
+		map.sai.centers.splice(map.sai.centers.length-1, 1);
+		map.sai.zooms.splice(map.sai.zooms.length-1, 1);
+		map.sai.sublayers.splice(map.sai.sublayers.length-1, 1);
+	}
+	else
+	{
+		var layers = [];
+		map.sai.layers.forEach(function (conf) {						
+			if (conf.visible)
+			{
+				layers.push(conf.name);	
+			}
+		});			
+		
+		map.sai.mapSetLayers(layers);
+		var center = ol.proj.transform(map.sai.init.center,
+			  "EPSG:4326","EPSG:3857");		
+		map.sai.mapPanZoom(center,map.sai.init.zoom);				
+		map.sai.centers = [];
+		map.sai.zooms = [];
+	}
+};
+
+sA.Map.prototype.mapPanZoom = function(newCenter,newZoom,offsetScale,forceBounce) {	
 	var map = this.map;
+	var forceBounce = (this.isObj(forceBounce)?forceBounce:false);
+	var curZoom = map.getView().getZoom();
+	var newZoom = (this.isObj(newZoom)?newZoom:curZoom);
+		
 	var view = map.getView();
 	
 	var duration = 1000;
@@ -1685,42 +2078,99 @@ sA.Map.prototype.mapPanZoom = function(newCenter,newZoom,offsetScale) {
 		source: (view.getCenter())
 	});		  		
 	
-	var curZoom = map.getView().getZoom();	
-	if (curZoom == newZoom)
+	if (newCenter.length == 4)
 	{
-		var bounce = ol.animation.bounce({
-			duration: duration,
-			resolution: 1.5 * view.getResolution(),
-			start: start
-		});
-	
-		map.beforeRender(pan, bounce);
+		var wgs84Sphere = new ol.Sphere(6378137);
+		var sourceProj = map.getView().getProjection();
+		var c1 = ol.proj.transform(view.getCenter(), sourceProj, 'EPSG:4326');
+		var c2 = ol.proj.transform([newCenter[0]+((newCenter[2]-newCenter[0])/2),newCenter[1]+((newCenter[3]-newCenter[1])/2)], sourceProj, 'EPSG:4326');
+		var distance = wgs84Sphere.haversineDistance(c1, c2);
+		
+		var ms = map.getSize();
+		var mdistance = Math.min(ms[0],ms[1])*view.getResolution();		
+				
+		if ((distance >= mdistance && curZoom <= newZoom || forceBounce) && c2 != c1)
+		{
+			var bounce = ol.animation.bounce({
+				duration: duration,
+				resolution: 2*distance/mdistance * view.getResolution(),
+				start: start
+			});
+			
+			var zoom = ol.animation.zoom({
+					duration: duration,
+					resolution: view.getResolution(),
+					start: start
+				});
+		
+			map.beforeRender(zoom, pan, bounce);
+		}
+		else
+		{
+			var zoom = ol.animation.zoom({
+					duration: duration,
+					resolution: view.getResolution(),
+					start: start
+				});
+				
+			map.beforeRender(pan, zoom);
+		}
+		map.getView().fitExtent(newCenter, map.getSize());
 	}
 	else
-	{
-		var zoom = ol.animation.zoom({
-			duration: duration,
-			resolution: view.getResolution(),
-			start: start
-		});
+	{			
+		//var distance = ol.sphere.WGS84.haversineDistance(view.getCenter(),newCenter); 
 		
-		map.beforeRender(pan, zoom);
-		view.setZoom(newZoom);
-	}
+		var wgs84Sphere = new ol.Sphere(6378137);
+		var sourceProj = map.getView().getProjection();
+		var c1 = ol.proj.transform(view.getCenter(), sourceProj, 'EPSG:4326');
+		var c2 = ol.proj.transform(newCenter, sourceProj, 'EPSG:4326');
+		var distance = wgs84Sphere.haversineDistance(c1, c2);
 		
-	var size = (map.getSize());
-	var offsetScale = (this.isObj(offsetScale)?offsetScale:[0,0]);
+		var ms = map.getSize();
+		var mdistance = Math.min(ms[0],ms[1])*view.getResolution();		
+				
+		if ((distance >= mdistance && curZoom <= newZoom || forceBounce) && c2 != c1)
+		{
+			var bounce = ol.animation.bounce({
+				duration: duration,
+				resolution: 2*distance/mdistance * view.getResolution(),
+				start: start
+			});
 			
-	view.centerOn(
-		newCenter,
-		size,			
-		[(size[0]/2)+offsetScale[0],(size[1]/2)+offsetScale[1]]
-	);	 	
-	
+			var zoom = ol.animation.zoom({
+					duration: duration,
+					resolution: view.getResolution(),
+					start: start
+				});
+		
+			map.beforeRender(zoom, pan, bounce);
+		}				
+		else
+		{
+			var zoom = ol.animation.zoom({
+				duration: duration,
+				resolution: view.getResolution(),
+				start: start
+			});
+			
+			map.beforeRender(pan, zoom);
+			view.setZoom(newZoom);
+		}		
+			
+		var size = (map.getSize());
+		var offsetScale = (this.isObj(offsetScale)?offsetScale:[0,0]);
+				
+		view.centerOn(
+			newCenter,
+			size,			
+			[(size[0]/2)+offsetScale[0],(size[1]/2)+offsetScale[1]]
+		);	 	
+	}
 };	
 
 sA.Map.prototype.mapOnMouseMove = function(evt) {	
-		
+	//return;	
 	var lonlat = ol.proj.transform(evt.coordinate,
 				"EPSG:3857", "EPSG:4326");
 	
@@ -1747,17 +2197,36 @@ sA.Map.prototype.mapOnMouseMove = function(evt) {
 			var conf = (sai.isObj(ugdata[0].conf)?ugdata[0].conf:false);
 			if (conf)
 			{
-				if (sai.isObj(conf.fields))
+				var mkutf = [];
+				var mkutfname = [];
+				for (key in conf)
 				{
-					for (var f=0;f<conf.fields.length;f++)
+					if (key.substr(0,6) == 'fields')
 					{
-						var field = conf.fields[f];
+						for (var k=0;k<conf[key].length;k++)
+						{
+							var kf = conf[key][k];								
+							if ($.inArray(kf['name'],mkutfname) < 0)
+							{
+								mkutf.push(kf);	
+								mkutfname.push(kf['name']);
+							}
+						}						
+					}
+				}								
+				
+				if (mkutf.length > 0)
+				{
+					for (var f=0;f<mkutf.length;f++)
+					{
+						var field = mkutf[f];
 						if (sai.isObj(ugdata[1][field.name]))
 						{
 							text += (text == ""?"":", ") + "<strong>" + field.alias + "</strong> " + ugdata[1][field.name];	
 						}																					
 					}						
-				}				
+				}
+				 				
 			}						
 			
 			if (ugdata.length > 2)
@@ -1841,11 +2310,20 @@ sA.Map.prototype.mapOnMouseMove = function(evt) {
 	coordbox.html(hdms);	
 };
 
+
 sA.Map.prototype.mapOnMouseClick = function(evt) {
-	var lonlat = ol.proj.transform(evt.coordinate,
-				"EPSG:3857", "EPSG:4326");
+	
 	
 	var sai = evt.map.sai;				
+	
+	if (!sai.isObj(sai.draw) && evt.originalEvent.shiftKey)
+	{		
+		sai.mapPrevZoom();
+		return;
+	}		
+	
+	var lonlat = ol.proj.transform(evt.coordinate,
+				"EPSG:3857", "EPSG:4326");		
 		
 	if (sai.isObj(sai.featureHighlight))
 	{			
@@ -1857,6 +2335,7 @@ sA.Map.prototype.mapOnMouseClick = function(evt) {
 	
 	var disinfo = true;
 	var data = sai.getUtfGridData(evt);			
+						
 	
 	var textf = "";						
 	var textd = "";
@@ -1942,68 +2421,42 @@ sA.Map.prototype.mapOnMouseClick = function(evt) {
 							
 									sai.unwait();									
 								},function(){
-									sai.unwait();
-								});
+									setTimeout(function () {
+										sai.unwait();
+									}, 2000);
+								});								
 							}
 						}						
 						return;
+					}
+					else
+					{
+						var zoom = sai.map.getView().getZoom();
+						sai.mapPanZoom(evt.coordinate,Math.min(zoom+3,19));
+						return;	
 					}
 					
 					disinfo = false;
 				}				
 				else
-				{
-				
+				{					
+					
 					if (sai.isObj(conf.sublayers) && ugdata[0].getVisible())
-					{										
-						sai.map.getLayers().forEach(function (lyr) {													
-							if (sai.isObj(lyr.get('name')))
-							{
-								if (lyr.get('isbase') !== true)
-								{
-									lyr.setVisible(false);
-									var layid = "layer_"+lyr.get('name').toLowerCase().replace(/[^a-zA-Z0-9]/g,"_");
-									$("#" + layid +" .iyo-layer-legend").addClass("iyo-box-unshow");
-									$("#" + layid +" .iyo-layer-legend").addClass("noprint");
-									$("#" + layid +" .iyo-layer-classes").addClass("hidden");
-									$("#" + layid +" .iyo-layer-tools-visibility").removeClass("iyo-box-show");
-								}
-								
-							}
-							if (sai.inArray(lyr.get('name'),conf.sublayers) >= 0) {							
-								lyr.setVisible(true);
-								var layid = "layer_"+lyr.get('name').toLowerCase().replace(/[^a-zA-Z0-9]/g,"_");
-								$("#" + layid +" .iyo-layer-legend").removeClass("iyo-box-unshow");
-								$("#" + layid +" .iyo-layer-legend").removeClass("noprint");
-								$("#" + layid +" .iyo-layer-classes").removeClass("hidden");
-								$("#" + layid +" .iyo-layer-tools-visibility").addClass("iyo-box-show");
-								
-								if (sai.isObj(lyr.utfGrid))
-								{
-									var evt = {map:sai.map};
-									lyr.utfGrid.fetch(evt);
-								}
-							} 						
-						});	
+					{																
+						sai.mapSetLayers(conf.sublayers);
+												
 						
-						/*
-						ugdata[0].setVisible(false);
-						var layid = "layer_"+ugdata[0].get('name').toLowerCase().replace(/[^a-zA-Z0-9]/g,"_");
-						$("#" + layid +" .iyo-layer-legend").addClass("iyo-box-unshow");
-						$("#" + layid +" .iyo-layer-legend").addClass("noprint");
-						$("#" + layid +" .iyo-layer-classes").addClass("hidden");
-						$("#" + layid +" .iyo-layer-tools-visibility").removeClass("iyo-box-show");
-						*/ 
-						
-						var zoom = sai.map.getView().getZoom();
+						var zoom = sai.map.getView().getZoom();						
 						sai.mapPanZoom(evt.coordinate,Math.min(zoom+3,19));
+						
+						sai.zooms.push(Math.min(zoom+3,19));
+						sai.centers.push(evt.coordinate);
+						sai.sublayers.push(conf.sublayers);												
 						
 						return true;
 					}
 					
-					if (sai.isObj(conf.fields))
-					{
-						var reformat = function(str,from,to) {
+					var reformat = function(str,from,to) {
 							var mf = from.match(/function/);
 							var mx = from.match(/([A-Za-z0-9]+)\((.*)\)/);							
 							if (mf == null && mx == null)
@@ -2021,10 +2474,30 @@ sA.Map.prototype.mapOnMouseClick = function(evt) {
 							}
 							return str;
 						};
-						
-						for (var f=0;f<conf.fields.length;f++)
+					
+					var mkutf = [];
+					var mkutfname = [];
+					for (key in conf)
+					{
+						if (key.substr(0,6) == 'fields')
 						{
-							var field = conf.fields[f];
+							for (var k=0;k<conf[key].length;k++)
+							{
+								var kf = conf[key][k];								
+								if ($.inArray(kf['name'],mkutfname) < 0)
+								{
+									mkutf.push(kf);	
+									mkutfname.push(kf['name']);
+								}
+							}						
+						}
+					}	
+					
+					if (mkutf.length > 0)
+					{					
+						for (var f=0;f<mkutf.length;f++)
+						{
+							var field = mkutf[f];
 							if (sai.isObj(ugdata[1][field.name]))
 							{
 								if (ugdata[1][field.name] != null)
@@ -2053,14 +2526,17 @@ sA.Map.prototype.mapOnMouseClick = function(evt) {
 										text += (text == ""?"":", ") + "<strong>" + field.alias + "</strong> " + str;	
 									}	
 								}
-							}																					
-						}						
-					}
+							}
+						}
+					
+					}										
+										
 					
 					if (!ugdata[0].getVisible())
 					{
 						disinfo = disinfo?false:disinfo;	
 					}
+										
 				}
 			}							
 			
@@ -2083,30 +2559,18 @@ sA.Map.prototype.mapOnMouseClick = function(evt) {
 		}
 		else
 		{
-			/*
-			console.log("1070");												
-			if (sai.isObj(sai.onModify))
-			{
-				delete sai.onModify;	
-			}
-			*/
 			
 		}		
 	}
 		
-	if (sai.isObj(sai.draw) && data.length == 0 || sai.isObj(sai.onModify))	
-	{										
-		/*
-		if (sai.isObj(sai.onModify))
-		{
-			delete sai.onModify;
-		}
-		*/ 		
+		
+	if (sai.isObj(sai.draw) && (data.length == 0 || sai.isObj(sai.onModify)) )	
+	{														
 						
 		return;
 	}	
-
-						
+		
+	
 	if (disinfo)
 	{
 		
@@ -2115,15 +2579,24 @@ sA.Map.prototype.mapOnMouseClick = function(evt) {
 					
 		if (text != "")
 		{													
-			var overlays = evt.map.getOverlays().getArray();										
-			overlays[0].setPosition(evt.coordinate);
+			var overlays = evt.map.getOverlays().getArray();
+			
+			var pos = evt.coordinate;
+			if (sai.featureHighlight[0] != null)
+			{
+				var px = evt.map.getPixelFromCoordinate(pos);
+				pos = evt.map.getCoordinateFromPixel([px[0],px[1]-20]);				
+			}
+													
+			overlays[0].setPosition(pos);
 			
 			sai.popup.find(".iyo-popup-content").html(text.replace(/null/g,""));	
 			sai.popup.find(".iyo-popup-closer").css("display","block");
 			sai.popup.css("display","block");				
 			
 			var zoom = sai.map.getView().getZoom();		
-			sai.mapPanZoom(evt.coordinate,(zoom<10?Math.min(zoom+2,19):zoom),[0,50]);
+			//sai.mapPanZoom(evt.coordinate,(zoom<10?Math.min(zoom+2,19):zoom),[0,50]);			
+			sai.mapPanZoom(evt.coordinate,zoom,[0,50]);
 		}	
 		else
 		{
@@ -2134,6 +2607,8 @@ sA.Map.prototype.mapOnMouseClick = function(evt) {
 	
 	
 };	
+
+
 
 sA.Map.prototype.initUi = function() {
 	
@@ -2183,17 +2658,20 @@ sA.Map.prototype.mkUiNav = function() {
 		var act = $("#" + map.sai.id + " .iyo-nav").find(".iyo-box-show");
 		if (act.length > 0)
 		{
-			act.removeClass("iyo-box-show");			
-		}				
-		
-		$("#" + map.sai.id + " .iyo-panel1 .iyo-tab").css("display","none");		
-		var klas = $(this).attr("class");		
-		$("#" + map.sai.id + " .iyo-panel1 ." + klas.replace("-nav","")).css("display","block");		
-		if (act.length > 0)
-		{			
-			$(this).addClass("iyo-box-show");		
+			//act.removeClass("iyo-box-show");			
 		}
-		$("#" + map.sai.id + " .iyo-panel1").css("display","block");
+		else
+		{				
+		
+			$("#" + map.sai.id + " .iyo-panel1 .iyo-tab").css("display","none");		
+			var klas = $(this).attr("class");		
+			$("#" + map.sai.id + " .iyo-panel1 ." + klas.replace("-nav","")).css("display","block");		
+			if (act.length > 0)
+			{			
+				$(this).addClass("iyo-box-show");		
+			}
+			$("#" + map.sai.id + " .iyo-panel1").css("display","block");
+		}
 	});	
 	
 	$("#" + this.id + "  .iyo-panel1").on("mouseleave",function() {
@@ -2208,40 +2686,8 @@ sA.Map.prototype.mkUiNav = function() {
 sA.Map.prototype.mkUiHome = function() {
 	var map = this.map;
 	
-	$("#" + this.id + " .iyo-home").click(function(){
-		
-		map.sai.popup.css("display","none");
-		var closer = map.sai.popup.find(".iyo-popup-closer");
-		closer.blur();		
-		
-		map.getLayers().forEach(function (lyr) {						
-			if (map.sai.isObj(lyr.conf) && !lyr.get('isbase'))
-			{				
-				var visible = (map.sai.isObj(lyr.conf.visible)?lyr.conf.visible:true);
-				lyr.setVisible(visible);			
-				
-				var layid = "layer_"+lyr.conf.name.toLowerCase().replace(/[^a-zA-Z0-9]/g,"_");
-				if (visible)
-				{
-					$("#" + layid +" .iyo-layer-legend").removeClass("iyo-box-unshow");
-					$("#" + layid +" .iyo-layer-legend").removeClass("noprint");
-					$("#" + layid +" .iyo-layer-classes").removeClass("hidden");	
-					$("#" + layid +" .iyo-layer-tools-visibility").addClass("iyo-box-show");
-				}
-				else
-				{
-					$("#" + layid +" .iyo-layer-legend").addClass("iyo-box-unshow");
-					$("#" + layid +" .iyo-layer-legend").addClass("noprint");
-					$("#" + layid +" .iyo-layer-classes").addClass("hidden");	
-					$("#" + layid +" .iyo-layer-tools-visibility").removeClass("iyo-box-show");
-				}										
-			}			
-		});							
-		
-		var center = ol.proj.transform(map.sai.init.center,
-			  "EPSG:4326","EPSG:3857");		
-		map.sai.mapPanZoom(center,map.sai.init.zoom);				
-
+	$("#" + this.id + " .iyo-home").click(function(){		
+		map.sai.mapPrevZoom();
 	});		
 	
 	$("#" + this.id + " .iyo-home").bind("mouseover",function(){
@@ -2311,24 +2757,14 @@ sA.Map.prototype.mkUiBase = function() {
 	
 };	
 
+
 sA.Map.prototype.mkUiPrint = function() {
 	var map = this.map;
 	$("#" + this.id + " .iyo-print").click(function(){
 		$("#" + map.sai.id + " .iyo-panel0 .iyo-nav-layers").click();		
-		window.print();
-		
+		window.print();		
 	});
-	
-	/*
-	//$("#" + this.id ).bind("onbeforeprint",function() {
-	window.matchMedia("print").addListener(function() {
-		console.log("print");
-		map.updateSize();				
-		setTimeout(function(){
-			map.updateSize();
-		},500);					
-	});
-	*/ 
+		 
 	
 	$("#" + this.id + " .iyo-print").bind("mouseover",function(){
 		if ($("#" + map.sai.id + " .iyo-tools-button .iyo-box-show").length == 0)
@@ -2358,6 +2794,8 @@ sA.Map.prototype.mkUiNavInset = function() {
 	});	
 };
 
+
+
 sA.Map.prototype.mapOnMoveEnd = function(evt) {	
 	var sai = this.sai;
 	for (var g = 0;g<sai.utfGrids.length;g++)
@@ -2365,7 +2803,9 @@ sA.Map.prototype.mapOnMoveEnd = function(evt) {
 		var ug = sai.utfGrids[g];
 	}
 	this.utfGrids = [];
-}	
+};	
+
+
 
 sA.Map.prototype.wait = function() {
 	if (typeof this.id != "undefined")
@@ -2381,6 +2821,8 @@ sA.Map.prototype.wait = function() {
 	//console.log('wait',sai.id);
 };
 
+
+
 sA.Map.prototype.unwait = function() {	
 	if (typeof this.id != "undefined")
 	{
@@ -2394,12 +2836,178 @@ sA.Map.prototype.unwait = function() {
 	$("#" + sai.id +" .ol-viewport").css('cursor','auto');		
 };
 
+
+
 sA.Map.prototype.mkUiSearch = function() {
 	var map = this.map;
-	$("#" + this.id + " .iyo-search-query input").change(function(){
-		alert('cari "' + $(this).val() + '", pencarian belum bisa digunakan ');
+	var search = function(title,dataId,val,page) {
+		map.sai.wait();
+		if (!map.sai.isObj(page))
+		{
+			page = 1;	
+		}
+		else
+		{
+			page = (isNaN(parseInt(page))?1:parseInt(page));	
+		}
+		
+		var preff = title.replace(/ /g,'_')+dataId;
+		
+		map.sai.xhr(map.sai.reqUrl + "/iyo/record/index/?format=json&data=" + dataId +"&term=" + val+"&page=" + page ,function(jsonString){							
+			var html = false;
+			var close = false;
+			var res = JSON.parse(jsonString);						
+			for (var r=0;r<res.length;r++)
+			{				
+				if (map.sai.isObj(res[r][map.sai.geom_col]))
+				{
+					var dhtml = '<div id="result_'+preff+'"><h4>'+title+'</h4><table id="table_'+preff+'" class="table table-hover table-striped"><table></div>';			
+					if ($("#" + map.sai.id +" .iyo-search-result #page_"+preff+"_"+page).length == 0)
+					{
+						$("#" + map.sai.id +" .iyo-search-result").append((!html?dhtml:''));	
+					}											
+					html = dhtml;			
+					var itml = '';					
+					var str = '<font style="color:#333;">GID '+res[r]['gid']+'</font><a class="pull-right">'+val+'</a>';
+					
+					var pstr = '';
+					var pn = 0;
+					for (key in res[r])
+					{
+						if (key != map.sai.geom_col)
+						{
+							var vstr = res[r][key]+'';
+							pn += 1;
+							if (pn >= 0)							
+							{
+								pstr += (pstr == ''?'':', ')+key.replace(/_/g,' ').capitalize()+': '+vstr;
+							}
+																				
+							if (vstr.toLowerCase().indexOf(val.toLowerCase()) >= 0)
+							{					
+								var str = '<font style="color:#333;">'+key.replace(/_/g,' ').capitalize()+'</font><a class="pull-right">'+vstr+'</a>';
+							}
+						}	
+					}
+					str += '<p><small>'+pstr+'</small></p>';
+					
+					var geom = res[r][map.sai.geom_col];
+					var extent = '';
+					if (geom != '')
+					{						
+						var geojson = new ol.format.GeoJSON();							
+						var geometry = geojson.readGeometry(geom,{dataProjection:"EPSG:4326",featureProjection:"EPSG:3857"});				
+												
+						if (geometry.getType().toLowerCase().indexOf('point') >= 0)
+						{
+							extent = JSON.stringify(geometry.getCoordinates());
+						}
+						else
+						{
+							extent = JSON.stringify(geometry.getExtent());
+						}
+					}
+										
+					itml = '<tr id="res_'+preff+'_'+res[r]['gid']+'" extent="'+extent+'" style="cursor:pointer;"><td>'+str+'</td></tr>';
+					
+					if ($("#" + map.sai.id +" .iyo-search-result #page_"+preff+"_"+page).length > 0)
+					{
+						$("#" + map.sai.id +" .iyo-search-result #button_"+preff+"_"+page).css('display','none');
+					}	
+					
+					$("#" + map.sai.id +" .iyo-search-result #table_"+preff).append(itml);					
+					
+					$("#" + map.sai.id +" .iyo-search-result #res_"+preff+'_'+res[r]['gid']).click(function(){
+						
+						$("#" + map.sai.id +" .iyo-search-result table tr td a").css('font-weight','normal');
+						$(this).find("a").css('font-weight','bold');
+						var pextent = JSON.parse($(this).attr('extent'));												
+												
+						if (pextent.length == 2)
+						{													
+							var zoom = map.getView().getZoom();						
+							map.sai.mapPanZoom(pextent,Math.min(zoom+3,19));							
+						}
+						else
+						{
+							map.sai.mapPanZoom(pextent,undefined,undefined,true);
+						}																			
+					});
+					
+				}				
+			}
+						
+			if (res.length >= 20)
+			{
+				var ptml = '<table id="page_'+preff+'_'+(page+1)+'" ><button id="button_'+preff+'_'+(page+1)+'" class="btn btn-block btn-primary" style="cursor:pointer;" ><i class="glyphicon glyphicon-refresh"></i></button></table>';				
+				$("#" + map.sai.id +" .iyo-search-result #result_"+preff).append(ptml);				
+				$("#" + map.sai.id +" .iyo-search-result #button_"+preff+'_'+(page+1)).click(function(){
+					search(title,dataId,val,(page+1));				
+				});												
+			}
+			
+			var nId = false;
+			map.getLayers().forEach(function (lyr) {													
+				
+				if (map.sai.isObj(lyr.get('name')))
+				{
+					if (lyr.get('isbase') !== true && lyr.getVisible())
+					{
+						lconf = lyr.conf;
+						if (map.sai.isObj(lconf.dataId))
+						{							
+							nId = lconf.dataId;
+						}
+					}					
+				}				
+			});
+			
+			if (nId == dataId)
+			{
+				var html = $("#" + map.sai.id +" .iyo-search-result").html();				
+				$("#" + map.sai.id +" .iyo-search-notfound").css("display",(html == ""?"":"none"));
+			}	
+					
+			map.sai.unwait();
+		},function(){
+			setTimeout(function () {
+				map.sai.unwait();
+			}, 2000);	
+		});	
+		
+	};	
+	
+	var startSearch = function() {
+		var val = $("#" + map.sai.id + " .iyo-search-query input").val();		
+		$("#" + map.sai.id +" .iyo-search-notfound").css("display","none");
+		$("#" + map.sai.id +" .iyo-search-result").html('');	
+		if (val != '')
+		{			
+			map.getLayers().forEach(function (lyr) {													
+			
+				if (map.sai.isObj(lyr.get('name')))
+				{
+					if (lyr.get('isbase') !== true && lyr.getVisible())
+					{
+						lconf = lyr.conf;
+						if (map.sai.isObj(lconf.dataId))
+						{
+							search(lyr.get('name'),lconf.dataId,val);
+						}
+					}					
+				}				
+			});			
+		}		
+	};
+		 
+	
+	$("#" + this.id + " .iyo-search-query input").keypress(function(e){
+		if (e.which == 13) {
+			startSearch();
+		}			
 	});	
 };	
+
 
 sA.Map.prototype.mkUiEditAttributes = function() {
 	var map = this.map;
@@ -2413,7 +3021,7 @@ sA.Map.prototype.mkUiEditAttributes = function() {
 		if (vis)
 		{
 			$("#" + map.sai.id + " .iyo-edit-attributes").removeClass("iyo-box-show");
-			$("#" + map.sai.id + " .iyo-tool-options-message").css("display","block");	
+			$("#" + map.sai.id + " .iyo-tool-options-message").css("display","block");				
 		}
 		else
 		{
@@ -2421,13 +3029,14 @@ sA.Map.prototype.mkUiEditAttributes = function() {
 			$("#" + map.sai.id + " .iyo-edit-attributes").addClass("iyo-box-show");
 			$("#" + map.sai.id + " .iyo-tool-options-message").css("display","none");	
 		}
+				
 	});	
 	
 	$("#" + this.id + " .iyo-edit-attributes").bind("mouseover",function(){
 		if ($("#" + map.sai.id + " .iyo-tools-button .iyo-box-show").length == 0)
 		{
 			$("#" + map.sai.id + " .iyo-tool-options").css("display","none");
-			$("#" + map.sai.id + " .iyo-attributes").css("display","block");
+			$("#" + map.sai.id + " .iyo-attributes").css("display","block");			
 		}	
 	});
 	
@@ -2435,8 +3044,8 @@ sA.Map.prototype.mkUiEditAttributes = function() {
 		if ($("#" + map.sai.id + " .iyo-tools-button .iyo-box-show").length == 0 && ($("#" + map.sai.id + " .iyo-attributes").css("display") == "none"))
 		{			
 			$("#" + map.sai.id + " .iyo-attributes").css("display","none");
-			$("#" + map.sai.id + " .iyo-tool-options-message").css("display","block");	
-		}	
+			$("#" + map.sai.id + " .iyo-tool-options-message").css("display","block");				
+		}			
 	});
 		
 	$("#" + this.id + " .iyo-attributes").bind("mouseleave",function(){
@@ -2445,10 +3054,13 @@ sA.Map.prototype.mkUiEditAttributes = function() {
 		{
 			$("#" + map.sai.id + " .iyo-attributes").css("display","none");
 			$("#" + map.sai.id + " .iyo-tool-options-message").css("display","block");	
-		}		
+		}
+			
 	});
 	
 };
+
+
 
 sA.Map.prototype.formatLength = function(lines,isGeodesic) {
 	var length = 0;
@@ -2491,12 +3103,13 @@ sA.Map.prototype.formatLength = function(lines,isGeodesic) {
 	return output;
 };
 
+
 sA.Map.prototype.formatArea = function(polygon,isGeodesic) {
 	var area;
 	var wgs84Sphere = new ol.Sphere(6378137);
 	if (isGeodesic) {
 		var sourceProj = map.getView().getProjection();
-		var geom = /** @type {ol.geom.Polygon} */(polygon.clone().transform(
+		var geom = (polygon.clone().transform(
 		sourceProj, 'EPSG:4326'));
 		var coordinates = geom.getLinearRing(0).getCoordinates();
 		area = Math.abs(wgs84Sphere.geodesicArea(coordinates));
@@ -2560,35 +3173,205 @@ sA.Map.prototype.mkUiAddPointCoordinates = function() {
 		}	
 	});
 	
+	function renderFormDms(d)
+	{	
+		var xhr = $("#iyo-template-dms-form").html();
+													
+		var n = $("#" + map.sai.id + " .dms").length;
+		
+		$("#" + map.sai.id + " .dms").each(function(){
+			var n0 = $(this).attr("id").replace("dms_","");
+			if (n0 != ":N")
+			{
+				n = Math.max(n,parseInt(n0));
+			}
+		});
+		
+		xhr = xhr.replace(/:N/g,n);
+		$("#" + map.sai.id + "-iyo-add-coordinates-form-tab-dms").append(xhr);									
+				
+		if (typeof d !== "undefined")
+		{
+			$("#" + map.sai.id + " #Dms_coord_"+n+"_degreex").val(typeof d["degreex"] !== "undefined"?d["degreex"]:"");
+			$("#" + map.sai.id + " #Dms_coord_"+n+"_minutex").val(typeof d["minutex"] !== "undefined"?d["minutex"]:"");
+			$("#" + map.sai.id + " #Dms_coord_"+n+"_secondx").val(typeof d["secondx"] !== "undefined"?d["secondx"]:"");				
+			
+			$("#" + map.sai.id + " #Dms_coord_"+n+"_degreey").val(typeof d["degreey"] !== "undefined"?d["degreey"]:"");
+			$("#" + map.sai.id + " #Dms_coord_"+n+"_minutey").val(typeof d["minutey"] !== "undefined"?d["minutey"]:"");
+			$("#" + map.sai.id + " #Dms_coord_"+n+"_secondy").val(typeof d["secondy"] !== "undefined"?d["secondy"]:"");				
+		}				
+		
+		$("#" + map.sai.id + " #dms-del"+n).bind("click",function(){
+			deleteDms(n);
+		});	
+		
+		$("#" + map.sai.id + " #Dms_coord_"+n+"_degreex").bind("change",function(){
+			updateDms();
+		});		
+		$("#" + map.sai.id + " #Dms_coord_"+n+"_minutex").bind("change",function(){
+			updateDms();
+		});
+		$("#" + map.sai.id + " #Dms_coord_"+n+"_secondx").bind("change",function(){
+			updateDms();
+		});
+		
+		$("#" + map.sai.id + " #Dms_coord_"+n+"_degreey").bind("change",function(){
+			updateDms();
+		});		
+		$("#" + map.sai.id + " #Dms_coord_"+n+"_minutey").bind("change",function(){
+			updateDms();
+		});
+		$("#" + map.sai.id + " #Dms_coord_"+n+"_secondy").bind("change",function(){
+			updateDms();
+		});
+	}	
+	
+	function deleteDms(n) {
+		$("#dms_"+n).html("");			
+		updateDms();
+	}
+	
+	function updateDms() {
+		$("#" + map.sai.id + "-iyo-coordinates-form").val("");
+		var coordtxt = "";
+		$("#" + map.sai.id + "-iyo-add-coordinates-form-tab-dms .dms").each(function() {
+			var n = $(this).attr("id").replace("dms_","");
+			
+			if ($(this).html() != "")
+			{
+				var degreexval = $("#" + map.sai.id + " #Dms_coord_"+n+"_degreex").val();
+				var degreex = parseInt(degreexval.replace('-',''));
+				var minutex = parseInt($("#" + map.sai.id + " #Dms_coord_"+n+"_minutex").val());
+				var secondx = parseInt($("#" + map.sai.id + " #Dms_coord_"+n+"_secondx").val());
+				var ddx = (isNaN(degreex)?0:degreex)+(isNaN(minutex)?0:minutex)/60+(isNaN(secondx)?0:secondx)/3600;
+				ddx = (degreexval.substr(0,1) == '-'?ddx*(-1):ddx);
+				
+				var degreeyval = $("#" + map.sai.id + " #Dms_coord_"+n+"_degreey").val();
+				var degreey = parseInt(degreeyval.replace('-',''));
+				var minutey = parseInt($("#" + map.sai.id + " #Dms_coord_"+n+"_minutey").val());
+				var secondy = parseInt($("#" + map.sai.id + " #Dms_coord_"+n+"_secondy").val());
+				var ddy = (isNaN(degreey)?0:degreey)+(isNaN(minutey)?0:minutey)/60+(isNaN(secondy)?0:secondy)/3600;
+				ddy = (degreeyval.substr(0,1) == '-'?ddy*(-1):ddy);
+				
+				coordtxt += (coordtxt == ""?"":"\n")+ddx+","+ddy;		
+			}
+		});					
+		$("#" + map.sai.id + "-iyo-coordinates-form").val(coordtxt);
+	}
+	
+	$("#" + this.id + "-dms-add").bind("click",function(){
+		renderFormDms();
+	});		
+	
 	$("#" + this.id + "-iyo-coordinates-clear").click(function(){
 		$("#" + map.sai.id + "-iyo-coordinates-form").val("");
 		map.sai.featureOverlay.getFeatures().clear();
+		
+		$("#" + map.sai.id + "-iyo-add-coordinates-form-tab-dms .dms").each(function() {
+			var n = $(this).attr("id").replace("dms_","");
+			$("#dms_"+n).html("");
+		});	
+	});
+	
+	$("#" + this.id + "-iyo-coordinates-form").change(function(){		
+		$("#" + map.sai.id + "-iyo-add-coordinates-form-tab-dms .dms").each(function() {
+			var n = $(this).attr("id").replace("dms_","");
+			$("#dms_"+n).html("");
+		});	
+		
+		var coords = $("#" + map.sai.id + "-iyo-coordinates-form").val().split("\n");				
+		for (var c=0;c<coords.length;c++)
+		{			
+			coord = coords[c].split(",");			
+			var pointsc = [parseFloat(coord[0]),parseFloat(coord[1])];
+			
+			var degreex = Math.floor(Math.abs(pointsc[0]));
+			var minutex = Math.floor((Math.abs(pointsc[0])-degreex)*60);
+			var secondx = Math.round((((Math.abs(pointsc[0])-degreex)*60)-minutex)*60);				
+			var degreexval = (pointsc[0] < 0?"-":"")+degreex;		
+			
+			var degreey = Math.floor(Math.abs(pointsc[1]));
+			var minutey = Math.floor((Math.abs(pointsc[1])-degreey)*60);
+			var secondy = Math.round((((Math.abs(pointsc[1])-degreey)*60)-minutey)*60);
+			var degreeyval = (pointsc[1] < 0?"-":"")+degreey;
+			
+			var d = {"degreex":degreexval,"minutex":minutex,"secondx":secondx,"degreey":degreeyval,"minutey":minutey,"secondy":secondy};
+			renderFormDms(d);
+		}	
 	});
 	
 	$("#" + this.id + "-iyo-coordinates-add").click(function(){		
 		var coords = $("#" + map.sai.id + "-iyo-coordinates-form").val().split("\n");
+		var gcoords = [];
 		for (var c=0;c<coords.length;c++)
 		{			
 			coord = coords[c].split(",");
 			var pointsc = [parseFloat(coord[0]),parseFloat(coord[1])];
 			var coord = ol.proj.transform(
-				pointsc, "EPSG:4326","EPSG:3857");			
-							
-			var feature = new ol.Feature({
-			  geometry: new ol.geom.Point(coord),
-			  isModified:true,			  
-			});
+				pointsc, "EPSG:4326","EPSG:3857");													
 			
+			var feature = new ol.Feature({
+				  geometry: new ol.geom.Point(coord),
+				  isModified:true			  
+				});
+				
 			if (map.sai.layerEditor != null)
-			{
-				map.sai.layerEditor.getSource().addFeature(feature);
+			{				
+				if ($.inArray(map.sai.layerEditor.salayer.conf.geomtype.toLowerCase(),['point','multipoint']) >= 0)
+				{
+					var d = new Date();
+					var n = d.getTime()+c+"";
+					feature.setId(parseInt(n.substr(6))*(-1));
+					feature.set('isModified',true);
+					feature.set('gid',feature.getId());																
+					map.sai.layerEditor.getSource().addFeature(feature);
+				}
+				else
+				{
+					gcoords.push(coord);
+				}
 			}
 			else
-			{
+			{								
 				map.sai.featureOverlay.addFeature(feature);
 			}
 			
-		}		
+		}
+		
+		if (map.sai.layerEditor != null)
+		{						
+			var nfeature = false;
+			if ($.inArray(map.sai.layerEditor.salayer.conf.geomtype.toLowerCase(),['linestring','multilinestring']) >= 0)
+			{
+				var feature = new ol.Feature({
+				  geometry: new ol.geom.LineString(gcoords),
+				  isModified:true		  
+				});
+				nfeature = true;
+			}
+			else if ($.inArray(map.sai.layerEditor.salayer.conf.geomtype.toLowerCase(),['polygon','multipolygon']) >= 0)
+			{
+				gcoords.push(gcoords[0]);
+				var feature = new ol.Feature({
+				  geometry: new ol.geom.Polygon([gcoords]),
+				  isModified:true			  
+				});
+				nfeature = true;
+			}			
+			
+			if (nfeature) {	
+				var d = new Date();
+				var n = d.getTime()+c+"";
+				feature.setId(parseInt(n.substr(6))*(-1));
+				feature.set('isModified',true);
+				feature.set('gid',feature.getId());																
+				map.sai.layerEditor.getSource().addFeature(feature);			
+			}
+			
+			map.sai.initUiAttributes(feature,map.sai.layerEditor.salayer);			
+		}	
+				
 	});
 	
 };
+/**/

@@ -138,6 +138,29 @@ $kcfOptions = array_merge([], [
 				]);
 			?>
 			
+			<?php 
+				echo Html::label(Yii::t('app','Retrieve relational columns data?'),'relational_columns_update');
+				echo SwitchInput::widget([
+					'name'=>'relational_columns_update',
+					'type' => SwitchInput::CHECKBOX,
+					'options'=>['id'=>'relational_columns_update'],
+					'pluginEvents' => [
+						"switchChange.bootstrapSwitch" => "function(event, value) { 
+							var metadata = JSON.parse($('#data-metadata').val());
+							if (value)
+							{
+								metadata.relational_columns_update = value;
+							}
+							else
+							{
+								delete metadata['relational_columns_update'];
+							}	
+							$('#data-metadata').val(JSON.stringify(metadata));						
+						}",
+					]	
+				]);
+			?>
+			
 
 		</div>
 	</div>

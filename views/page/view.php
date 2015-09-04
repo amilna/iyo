@@ -4,6 +4,7 @@ use yii\helpers\Html;
 use yii\helpers\HtmlPurifier;
 use yii\widgets\ActiveForm;
 use yii\widgets\DetailView;
+use yii\db\Query;
 use amilna\blog\models\Category;
 
 /* @var $this yii\web\View */
@@ -29,7 +30,7 @@ $this->params['no-content-header'] = true;
 			$map = amilna\iyo\widgets\Map::widget(['id'=>$id]);
 			$content = preg_replace('/\{MAP id\:'.$id.'\}/',$map,$content);
 		}
-		$content = preg_replace('/\{DATA sql\:(.*) values\:(.*) var\:([a-z])\}/','',$content);
+		$content = preg_replace('/\{DATA id\:(\d+) query\:(.*) var\:([a-zA-Z0-9]+)\}/','',$content);
 	}		
 												
 	echo $content;					
@@ -40,20 +41,59 @@ $this->params['no-content-header'] = true;
 $this->beginBlock('STATIC_SCRIPTS');
 	
 	$content = $model->content;	
-	preg_match_all('/\{DATA sql\:\"SELECT (.*);\" values\:\{(.*)\} var\:([a-z]+)\}/',$content,$matches);		
+	preg_match_all('/\{DATA id\:(\d+) query\:(.*) var\:([a-zA-Z0-9]+)\}/',$content,$matches);				
+	
 	if (count($matches[0]) > 0)
-	{
+	{		
 		for ($m=0;$m<count($matches[0]);$m++)
-		{
-			$sql  = "SELECT ".$matches[1][$m].";";
-			$values  = '{'.$matches[2][$m].'}';
-			$var  = $matches[3][$m];
-			$data = Yii::$app->db->createCommand($sql)->bindValues(json_decode($values,true))->queryAll();
-			$dataJSON = json_encode($data);
+		{			
+			$id = $matches[1][$m];
+			$querystr = $matches[2][$m];			
+			$var  = $matches[3][$m];						
 			
-			
-			echo $var.' = '.$dataJSON.';';
-		}
+			$json = json_decode($querystr,true);											
+				
+			if (isset($json['select']) && isset($json['from']))
+			{															
+				$query = new Query;
+				$query->select($json['select'])						
+					->from(is_numeric($json['from'])?'{{%iyo_data_'.$json['from'].'}} as t':$json['from'].' as t');
+				
+				if (isset($json['leftJoins']))
+				{
+					foreach ($json['leftJoins'] as $lj)
+					{
+						$query->leftJoin(is_numeric($lj['table'])?'{{%iyo_data_'.$lj['table'].'}} as j'.$lj['table']:$lj['table'],$lj['on'],$lj['params']);
+					}
+				}	
+				
+				if (isset($json['where']))
+				{
+					$query->where($json['where']['condition'],$json['where']['params']);
+				}
+				
+				if (isset($json['groupBy']))
+				{
+					$query->groupBy($json['groupBy']);
+				}
+				
+				if (isset($json['orderBy']))
+				{
+					$query->orderBy($json['orderBy']);
+				}
+				
+				if (isset($json['limit']))
+				{
+					$query->limit($json['limit']);
+				}
+				
+				$rows = $query->all();			
+				$dataJSON = json_encode($rows);			
+				
+				echo $var.' = '.$dataJSON.';';				
+			}
+			 			
+		}		
 	}		
 	echo $model->scripts;
 	

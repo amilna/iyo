@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 
-import sys, getopt, os, json, mapnik, tempfile, urllib2
+#import time
+#t0 = time.time()
 
+import sys, getopt, os, json, mapnik, tempfile, urllib2
 from xml.dom import minidom
 
 try:
@@ -53,6 +55,7 @@ def main(argv):
 	if i.find('http') >= 0:				
 		xmlurl=urllib2.urlopen(i)
 		xmlstr=xmlurl.read()		
+		#xmlstr = '<Map srs="+proj=merc +a=6378137 +b=6378137 +lat_ts=0.0 +lon_0=0.0 +x_0=0.0 +y_0=0 +k=1.0 +units=m +nadgrids=@null +wktext +no_defs"><Style name="Style1"><Rule><PolygonSymbolizer fill="#ffbf00" fill-opacity="0.5"/><LineSymbolizer stroke="#ff7b00" stroke-width="1" stroke-opacity="1" stroke-linejoin="bevel"/></Rule></Style><Layer name="Layer1" srs="+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs "><StyleName>Style1</StyleName><Datasource><Parameter name="type">postgis</Parameter><Parameter name="host">localhost</Parameter><Parameter name="dbname">webgisPEP</Parameter><Parameter name="username">iyo</Parameter><Parameter name="password">SAlamaH</Parameter><Parameter name="table">(SELECT * FROM sxz51_iyo_data_6) as layer1</Parameter><Parameter name="geometry_field">the_geom</Parameter><Parameter name="srid">EPSG:4326</Parameter><Parameter name="fields">gid,nama_kebun,sk</Parameter></Datasource></Layer></Map>'
 		mapnik.load_map_from_string(mp,xmlstr)		
 		xmldoc = minidom.parseString(xmlstr)
 	else:
@@ -84,10 +87,13 @@ def main(argv):
 		if l == '-1':
 			print image
 	
+	#print ((time.time())-(t0))*1000
+	#sys.exit()
+	
 	lgrids = []	
 	if l != '-1':
 		for s in l.split(",") :
-			lgrids.append(int(s))
+			lgrids.append(s)
 	else:
 		sys.exit()
 				
@@ -96,15 +102,32 @@ def main(argv):
 	fields = []
 	resolution = 4 #Pixel resolution of output.   
 	printed = 0
-	for ly in lgrids :	
+	for lysl in lgrids :
+		lys = lysl.split(":")
+		ly = int(lys[0])
+		lz = ''
+		if (len(lys) == 2):	
+			lz = lys[1]
 		dat = itemlist[ly].getElementsByTagName('Datasource')[0] 
 		par = dat.getElementsByTagName('Parameter')	
 		for s in par :
-			if s.attributes['name'].value == 'fields':			
+			dv = s.attributes['name'].value
+			dck = False
+			
+			if (dv[6:] == '' or lz == ''):
+				dck = True
+			elif (dv[6:].isdigit() and lz.isdigit()):
+				dck = (int(lz) >= int(dv[6:]))
+						
+			
+			if dv[:6] == 'fields' and dck and fields == [] :			
 				text = s.childNodes[0].nodeValue.encode("utf-8")			
 				#print "fields "+text
-				fields = text.split(",")				
-			if s.attributes['name'].value == 'resolution':			
+				fields = text.split(",")
+			#elif dv[:6] == 'fields':			
+			#	ly = ly + 1
+				
+			if dv == 'resolution':			
 				res = s.childNodes[0].nodeValue.encode("utf-8")			
 				#print "resolution "+res
 				resolution = int(res)	

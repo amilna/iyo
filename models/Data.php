@@ -85,6 +85,7 @@ class Data extends \yii\db\ActiveRecord
 						3=>'MultiPoint',							
 						4=>'MultiLineString',														
 						5=>'MultiPolygon',														
+						6=>'Raster',														
 					],		
 			'status'=>[							
 						0=>Yii::t('app','not ready'),
@@ -194,11 +195,14 @@ class Data extends \yii\db\ActiveRecord
 			//die($cmd);			
 			$process = new Process($cmd);
 			
+			$clear = \amilna\iyo\components\Tilep::clearTile($this->id,true,true);
+			
 			$sql = "UPDATE ".Data::tableName()." 
 				SET pid = ".$process->getPid()."
 				WHERE id = ".$this->id;
 				
 			$res = $this->db->createCommand($sql)->execute();			
+			
 		}
 		
 		if (!$res)

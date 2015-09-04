@@ -244,6 +244,31 @@ class Tilep extends Component
 
 	}
 	
+	public function clearTile($id = false, $isdata = false, $xml = false, $z = false, $x = false, $y = false)
+    {	
+		$module = Yii::$app->getModule("iyo");		
+		$tileDir = \Yii::getAlias($module->tileDir);
+		$tileURL = \Yii::getAlias($module->tileURL);
+				
+		$tileServer = $module->tileServer;
+		$proxyhosts = implode(',',$module->proxyhosts);
+		$ports = implode(',',$module->ports);
+		$ipaddress = $module->ipaddress;
+		$sslKey = $module->sslKey;		
+		
+		$dsn = Yii::$app->db->dsn;
+		$tablePrefix = Yii::$app->db->tablePrefix;
+		$username = Yii::$app->db->username;
+		$password = Yii::$app->db->password;					
+		
+		$param = $tileURL.":".$id.":".$isdata.":".$z.":".$x.":".$y.":".$xml.":".$tileDir.":".$tileServer.":".$proxyhosts.":".$ports.":".$ipaddress.":".$sslKey;
+		$path = \Yii::getAlias("@amilna/iyo/components");			
+		$cmd = $path."/exec -action='clearTile' -dsn='".$dsn."' -tablePrefix='".$tablePrefix."' -username='".$username."' -password='".$password."' -param='".$param."'";
+		//die($cmd);			
+		$process = new Process($cmd);
+				
+	}	
+	
 	public function errorHandler()
     {						
 		http_response_code(200);

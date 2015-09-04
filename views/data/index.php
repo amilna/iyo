@@ -71,9 +71,9 @@ $this->params['breadcrumbs'][] = $this->title;
         
         'filterModel' => $searchModel,
         'columns' => [
-            ['class' => 'kartik\grid\SerialColumn'],
+            //['class' => 'kartik\grid\SerialColumn'],
 
-            //'id',
+            'id',
             'title',
             'description',
             'remarks:ntext',

@@ -17,13 +17,15 @@
     <?php
 		$options = $model->config;
 		$mapOptions = json_decode($options,true);
-		echo amilna\iyo\widgets\Map::widget(['options'=>$mapOptions]);				
+		$mapOptions['editable'] = true;
+		echo amilna\iyo\widgets\Map::widget(['options'=>$mapOptions]);
+				            
     ?>
 </div>
 
 <script type="text/javascript">
-<?php $this->beginBlock('IYO') ?>			
-	
+<?php $this->beginBlock('IYO') ?>		
+
 	function setview(opposite){		
 		var headerHeight = $('header').height();
 		var footerHeight = $('footer').height()+31; // footer padding 15px + 15px & footer border 1px		
@@ -37,12 +39,12 @@
 	}
 	
 	function updateview() {
-		if (typeof amilna_map != "undefined")
+		if (typeof peta_dasar != "undefined")
 		{
-			if (typeof amilna_map.map != "undefined")
+			if (typeof peta_dasar.map != "undefined")
 			{
-				var map = amilna_map.map;		
-				map.updateSize();				
+				var map = peta_dasar.map;		
+				map.updateSize();
 			}		
 		}		
 	}
@@ -53,8 +55,7 @@
 	});	
 	
 	$(".sidebar-toggle").on('click', function() {    		
-		setview(true);				
-		
+		setview(true);
 		setTimeout(function(){
 			updateview();		
 		},500);			

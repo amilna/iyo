@@ -68,6 +68,12 @@
 	display:none!important;
 }
 
+.ol-rotate {
+	top:auto!important;
+	right:auto!important;
+	left:10px!important;
+	bottom:40px!important;
+}
 
 @media (max-width: 480px) {	
 	
@@ -99,11 +105,19 @@
 	}
 	
 	.iyo-panel1 {		
-		margin-top:10px!important;
+		margin-top:0px!important;		
+		margin-right:0px!important;		
+		right:0px!important;
+		max-height:inherit!important;
+		min-height:100%!important;
+		overflow: hidden!important;
+		border: 3px solid white!important;
+		border-radius: 0px!important;
 	}
 	
 	.iyo-panel2 {		
 		bottom:10px!important;
+		display:none;
 	}
 	
 	.iyo-layer-show {
@@ -116,21 +130,20 @@
 	}
 	
 	.iyo-tab {
-		margin: 0px 0px 4px 0px;
+		margin: 4px!important;
 		
 		box-shadow:none!important;
 		-moz-box-shadow: none!important;
 		-webkit-filter: none!important;
-		filter: none!important;
+		filter: none!important;		
 	}
 	
-	/*
 	canvas.ol-unselectable {
 		width:auto!important;
 		height:auto!important;
-		display:block!important;
-	} 
-	*/ 	
+		#display:block!important;
+	}
+		
 }
 
 /**** IYO ****/
@@ -243,6 +256,7 @@
 	float:left;
 }
 
+
 .iyo-panel0 .iyo-nav div:hover {	
 	background-color: rgba(255,255,255,1)!important;	
 }
@@ -257,6 +271,18 @@
 	float:left;
 	font-size:8px;
 	display:none;
+}
+
+.iyo-nav-left {
+	padding: 0px!important;
+	margin:0px!important;
+	height:30px;
+	#border-radius: 2px;
+	#border: 1px solid rgba(200,200,200,0.7);
+	width:1px!important;
+	cursor:pointer;
+	float:left;
+	display:block!important;
 }
 
 .iyo-layer-tools-more div {	
@@ -464,8 +490,8 @@
 
 
 canvas.ol-unselectable {
-	width:auto!important;
-	height:auto!important;
+#	width:auto!important;
+#	height:auto!important;
 	#display:block!important;
 }
  

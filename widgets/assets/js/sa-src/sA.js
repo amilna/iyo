@@ -1,3 +1,7 @@
+String.prototype.capitalize = function() {
+    return this.replace(/(?:^|\s)\S/g, function(a) { return a.toUpperCase(); });
+};
+
 sA = function(obj_options) {
 	this.version = "0.0.0";
 	var options = (this.isObj(obj_options)?obj_options:{});
@@ -28,7 +32,7 @@ sA.prototype.init = function(func_callBack) {
 		i += 1;		
 		if (sa.inArray(p,sa.plugins) < sa.plugins.length-1)
 		{			
-			if (sa.isObj(eval("sA."+p)))
+			if (sa.isObj(eval("sA."+p.replace('.min',''))))
 			{
 				saInit.load();
 			}
@@ -41,7 +45,7 @@ sA.prototype.init = function(func_callBack) {
 		}
 		else
 		{			
-			if (sa.isObj(eval("sA."+p)))
+			if (sa.isObj(eval("sA."+p.replace('.min',''))))
 			{
 				if (sa.isObj(func_callBack))
 				{

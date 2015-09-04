@@ -68,3 +68,9 @@ elseif (!empty($dsn) && !empty($tablePrefix) && !empty($username)&& !empty($pass
 	$exitCode = $format->printXml();			
 	exit($exitCode);
 }
+elseif (!empty($dsn) && !empty($tablePrefix) && !empty($username)&& !empty($password) && !empty($param) && $action == 'clearTile')
+{		
+	$format = new \amilna\iyo\components\FormatTile($dsn,$tablePrefix,$username,$password,$param);
+	$exitCode = $format->clearTile();			
+	exit($exitCode);
+}

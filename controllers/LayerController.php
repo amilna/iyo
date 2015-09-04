@@ -198,7 +198,7 @@ class LayerController extends Controller
         } else {
             throw new NotFoundHttpException('The requested page does not exist.');
         }
-    }
+    }        
     
     public function actionXml($id,$name)
     {
@@ -206,7 +206,7 @@ class LayerController extends Controller
         if (in_array($_SERVER['REMOTE_ADDR'],$module->allowedips))
 		{			
 			$db = Yii::$app->db;
-			$format = new FormatXml($db->dsn,$db->tablePrefix,$db->username,$db->password,$id.':'.$name.':'.$module->geom_col.':'.Yii::$app->user->id);
+			$format = new FormatXml($db->dsn,$db->tablePrefix,$db->username,$db->password,$id.':'.$name.':'.$module->geom_col.':'.Yii::$app->user->id.':'.Yii::getAlias('@webroot'));
 			$xml = $format->getXml();
 			if ($xml)
 			{

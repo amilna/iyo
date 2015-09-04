@@ -26,7 +26,7 @@ var geomuserstr = process.argv[7]; //'the_geom,1';
 var dblst = dbstr.split(',');
 var actionstr = "-action='getXml' -dsn='"+dblst[0]+"' -tablePrefix='"+dblst[1]+"' -username='"+dblst[2]+"' -password='"+dblst[3]+"'";
 var geomuserlst = geomuserstr.split(',');
-var geomuser = geomuserlst[0]+":"+geomuserlst[1];
+var geomuser = geomuserlst[0]+":"+geomuserlst[1]+":"+geomuserlst[2];
 
 if (typeof process.argv[8] != "undefined" && typeof process.argv[9] != "undefined")
 {

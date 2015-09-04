@@ -9,6 +9,7 @@ use amilna\iyo\models\Map;
 use yii\web\Controller;
 use yii\web\NotFoundHttpException;
 use yii\filters\VerbFilter;
+use yii\db\Query;
 
 class PageController extends \amilna\blog\controllers\PageController
 {         
@@ -125,6 +126,70 @@ class PageController extends \amilna\blog\controllers\PageController
             throw new NotFoundHttpException('The requested page does not exist.');
         }
     }
+    
+    public function actionQuery()
+    {
+		$content = isset($_POST['content'])?$_POST['content']:false;
+		$res = [];		
+		if ($content)
+		{			
+			preg_match_all('/\{DATA id\:(\d+) query\:(.*) var\:([a-zA-Z0-9]+)\}/',$content,$matches);		
+			if (count($matches[0]) > 0)
+			{		
+				for ($m=0;$m<count($matches[0]);$m++)
+				{
+					$did = $matches[1][$m];
+					
+										
+					$querystr = $matches[2][$m];			
+					$var  = $matches[3][$m];
+					
+					$json = json_decode($querystr,true);			
+					if (isset($json['select']) && isset($json['from']))
+					{															
+						$query = new Query;
+						$query->select($json['select'])						
+							->from(is_numeric($json['from'])?'{{%iyo_data_'.$json['from'].'}} as t':$json['from'].' as t');
+						
+						if (isset($json['leftJoins']))
+						{
+							foreach ($json['leftJoins'] as $lj)
+							{
+								$query->leftJoin(is_numeric($lj['table'])?'{{%iyo_data_'.$lj['table'].'}} as j'.$lj['table']:$lj['table'],$lj['on'],$lj['params']);
+							}
+						}	
+						
+						if (isset($json['where']))
+						{
+							$query->where($json['where']['condition'],$json['where']['params']);
+						}
+						
+						if (isset($json['groupBy']))
+						{
+							$query->groupBy($json['groupBy']);
+						}
+						
+						if (isset($json['orderBy']))
+						{
+							$query->orderBy($json['orderBy']);
+						}
+						
+						if (isset($json['limit']))
+						{
+							$query->limit($json['limit']);
+						}
+						
+						$rows = $query->all();			
+						$res[$did] = $rows;								
+					}
+				
+				}				
+			}
+		}
+		
+		die(json_encode($res));	
+		
+	}
 
  
 }

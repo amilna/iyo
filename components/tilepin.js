@@ -121,7 +121,8 @@ function isCache(xml,ext,tile)
 }
 
 function getTile(tile,xml,o,ext,bbox,lgrid,callback)
-{
+{			
+	o = ext;
 	if (o != ext)
 	{
 	
@@ -149,10 +150,12 @@ function mkTile(tile,xml,o,ext,bbox,lgrid,callback)
 	var x = tile[1];
 	var y = tile[2];
 	
+	/*
 	if (isCache(xml,ext,tile))
 	{
 		return callback(cache[xml][ext][z][x][y]);	
 	}
+	*/ 
 	
 	var sys = require('sys')
 	var exec = require('child_process').exec;
@@ -167,10 +170,11 @@ function mkTile(tile,xml,o,ext,bbox,lgrid,callback)
 	{
 		xmlp = 	xmlDir+"/"+xml+".xml";
 		
-	}		
+	}							
 	
+					
 	child = exec("python '"+pyFile+"' -i '"+xmlp+"' -o "+o+" -b "+bbox+lgrid, function (error, stdout, stderr) {								
-						
+								
 		if (error !== null) {			
 			return callback(false,error);
 		}
@@ -178,14 +182,15 @@ function mkTile(tile,xml,o,ext,bbox,lgrid,callback)
 		{								
 			if (ext == "png")
 			{					  																		
-								
+				
 				fs.readFile(stdout.trim(), function (err, data) {				  
 					//if (err) throw err;
 					if (err) {
 						return callback(false,err);
 					}
 					else					
-					{															
+					{																											
+					
 						putCache(data,xml,ext,z,x,y);
 						callback(data);
 						
@@ -219,17 +224,20 @@ function mkTile(tile,xml,o,ext,bbox,lgrid,callback)
 	
 }
 
-var mkServ = function (req, res) {	
+var mkServ = function (req, res) {			
 	
-	m = req.url.match(/^\/([a-zA-Z0-9_]+)\/(\d+)\/(\d+)\/(\d+)\.(png|json)\?r\=(\d+)/);	
+	//var dt = new Date();
+	//console.log('getreq',dt.getTime());
+	
+	m = req.url.match(/\/([a-zA-Z0-9_]+)\/(\d+)\/(\d+)\/(\d+)\.(png|json)\?r\=(\d+)/);	
 	
 	if (m == null)
 	{
-		m = req.url.match(/^\/([a-zA-Z0-9_]+)\/(\d+)\/(\d+)\/(\d+)\.(png|json)/);	
+		m = req.url.match(/\/([a-zA-Z0-9_]+)\/(\d+)\/(\d+)\/(\d+)\.(png|json)/);	
 				
 		if (m == null)		
 		{
-			m = req.url.match(/^\/([a-zA-Z0-9_]+)\?r\=(\d+)/);	
+			m = req.url.match(/\/([a-zA-Z0-9_]+)\?r\=(\d+)/);	
 			if (m != null)
 			{
 				var xml = m[1];				
@@ -255,6 +263,7 @@ var mkServ = function (req, res) {
 			delete cache[xml]['png'][z][x][y];
 		}		
 	}
+		
 		
 	if (m != null)
 	{
@@ -297,7 +306,7 @@ var mkServ = function (req, res) {
 		//console.log(s,e);
 		 
 		var bbox = s[0]+","+e[1]+","+e[0]+","+s[1];
-		var lgrid = (ext == "json"?" -l 0":"");										
+		var lgrid = (ext == "json"?" -l 0:"+z:"");										
 		
 		var ohost = req.headers.host;
 		var port = ohost.substr(ohost.indexOf(":")+1);
@@ -316,7 +325,7 @@ var mkServ = function (req, res) {
 		{		
 			o = ext;		
 		}
-		//console.log(z,maxZoomCache,o);
+		//console.log(z,maxZoomCache,o);				
 		
 		getTile([z,x,y],xml,o,ext,bbox,lgrid,function(data,error){
 			
@@ -337,13 +346,14 @@ var mkServ = function (req, res) {
 				}
 				else if (ext == "png")
 				{
+					
 					ct = {
 						'Content-Type': 'image/png',					
 					};	
 					//res.writeHead(200, ct);				  
 					res.statusCode = 200;
 					res.setHeader("Content-Type", "image/png");
-					res.end(data,'binary');
+					res.end(data,'binary');					
 				}
 				else
 				{

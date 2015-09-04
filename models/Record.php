@@ -32,7 +32,7 @@ class Record extends \yii\db\ActiveRecord
 			$data = Data::findOne($dataId);
 			if ($data)
 			{
-				if (in_array($data->status,[1,3]))
+				if (in_array($data->status,[1,3]) && in_array($data->type,[0,1,2,3,4,5]))
 				{
 					$go = true;	
 				}
@@ -231,8 +231,9 @@ class Record extends \yii\db\ActiveRecord
 		
 		$module = Yii::$app->getModule('iyo');
 		$geom_col = $module->geom_col;
+		
 		return $this->db->createCommand(
-			"SELECT ST_AsGeoJSON(".$geom_col.",4,0) as geojson FROM ".(self::$dynTableName)." WHERE gid = :gid"
+			"SELECT ST_AsGeoJSON(ST_Transform(".$geom_col.",4326),4,0) as geojson FROM ".(self::$dynTableName)." WHERE gid = :gid"
 		)->bindValues([":gid"=>$this->gid])->queryScalar();
 		
 	}

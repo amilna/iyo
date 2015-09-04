@@ -171,12 +171,84 @@ class Layer extends \yii\db\ActiveRecord
 	} 
 	
 	public function beforeSave($insert)
-	{
+	{		
 		if (parent::beforeSave($insert)) {
-			$this->config = str_replace('&amp;','&',$this->config);			
+			$this->config = str_replace(['&amp;','&lt;','&gt;'],['&','<','>'],$this->config);						
 			return true;
 		} else {
 			return false;
 		}
+	}   
+	
+	public function afterSave($insert, $changedAttributes)
+    {		
+		$dids = $this->data_id != null?[$this->data_id]:[];
+		$configs = json_decode($this->config,true);
+		foreach ($configs as $config)
+		{
+			if (isset($config['dataquery']))
+			{
+				preg_match('/(\d+)/',$config['dataquery'],$qid);				
+				preg_match('/intersect\((\d+)\,(\d+)\)/',$config['dataquery'],$intersect);
+				preg_match('/centerOf\((\d+)\)/',$config['dataquery'],$centerof);					
+				preg_match('/centerOn\((\d+)\)/',$config['dataquery'],$centeron);
+				preg_match('/dissolveBy\((\d+)\,([a-z0-9_]+)\)/',$config['dataquery'],$dissolve);
+				
+				if (count($qid) > 0)
+				{
+					if (!in_array(intval($qid[1]),$dids))
+					{
+						$dids[] = intval($qid[1]);	
+					}
+				}
+				if (count($intersect) > 0)
+				{
+					if (!in_array(intval($intersect[1]),$dids))
+					{
+						$dids[] = intval($intersect[1]);	
+					}
+					if (!in_array(intval($intersect[2]),$dids))
+					{
+						$dids[] = intval($intersect[2]);	
+					}
+				}
+				if (count($centerof) > 0)
+				{
+					if (!in_array(intval($centerof[1]),$dids))
+					{
+						$dids[] = intval($centerof[1]);	
+					}
+				}
+				if (count($centeron) > 0)
+				{
+					if (!in_array(intval($centeron[1]),$dids))
+					{
+						$dids[] = intval($centeron[1]);	
+					}
+				}
+				if (count($dissolve) > 0)
+				{
+					if (!in_array(intval($dissolve[1]),$dids))
+					{
+						$dids[] = intval($dissolve[1]);	
+					}
+				}
+			}
+		}
+		
+		$sql = "DELETE FROM ".$this->db->tablePrefix."iyo_lay_dat 				
+				WHERE layer_id = ".$this->id.";";						
+		
+		foreach ($dids as $did)
+		{
+			$sql .= "INSERT INTO ".$this->db->tablePrefix."iyo_lay_dat
+				(layer_id,data_id) VALUES (".$this->id.",".$did.");";						
+		}		
+				
+		$res = $this->db->pdo->exec($sql);
+		
+		$clear = \amilna\iyo\components\Tilep::clearTile($this->id,false,true);
+			
+		parent::afterSave($insert, $changedAttributes);
 	}   
 }

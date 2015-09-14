@@ -375,7 +375,7 @@ class FormatData extends Component
 				
 				$froms .= " LEFT JOIN ".$pret.$d." as d".$d." ON ST_INTERSECTS(d0.".$geom_col.",d".$d.".".$geom_col.")";				
 				
-				$sql = "UPDATE ".$table." as t ".$sets." ".$vals." ".$froms." WHERE t.gid=d0.gid";
+				$sql = "UPDATE ".$table." as t ".$sets." ".$vals." ".$froms." WHERE t.gid=d0.gid AND ST_isvalid(d0.".$geom_col.") AND ST_isvalid(d".$d.".".$geom_col.")";
 				$res = !is_array($this->db->createCommand($sql)->execute());												
 			}
 			unset($metadata['relational_columns_update']);								

@@ -42,7 +42,7 @@ sA.Map = function(arrObj_options) {
 	
 	this.maxZoom = 19;
 	if (this.isObj(options.minZoom)) {
-		this.minZoom = options.minZoom;
+		this.maxZoom = options.maxZoom;
 	}					
 	
 	/* layers config example
@@ -672,10 +672,11 @@ sA.Map.prototype.initUiLegend = function(layer) {
 							newImg.onload = function(){
 								var h = this.height*scale;	
 								var w = this.width*scale;																			
-								var img = '<img src="'+this.src+'" height='+h+' width='+w+' style="'+(opacity?'opacity:'+opacity+';':'')+'margin:auto;display:block;"/>';																		
+								var img = '<img src="'+this.src+'" height='+h+' width='+w+' style="'+(this.opacity?'opacity:'+this.opacity+';':'')+'margin:auto;display:block;"/>';																		
 								$("#" + this.id+ " .iyo-layer-class-symbol").html(img);
 							};
-							newImg.src = src;						
+							newImg.src = src;
+							newImg.opacity = opacity;													
 							newImg.id = layid+"_class_"+rc;						
 						}
 						else
@@ -1628,6 +1629,7 @@ sA.Map.prototype.getStyle = function(featureHighlight,sai) {
 						{														
 							var prop = featureHighlight[0].getProperties();
 							var tesv = tesf.replace(/=/g,'==').replace(/ or /g,' || ').replace(/ and /g,' && ')+'';	
+							tesv = tesv.replace(/>==/g,'>=').replace(/<==/g,'<=')+'';	
 							for (var fl=0;fl<filter.length;fl++)
 							{
 								var val = "true";
@@ -1640,7 +1642,7 @@ sA.Map.prototype.getStyle = function(featureHighlight,sai) {
 							}
 						}
 					}	
-						
+					
 					try {
 						var evalv = (eval(tesv));
 					}						

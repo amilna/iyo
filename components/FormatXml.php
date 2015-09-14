@@ -394,6 +394,9 @@ class FormatXml extends Component
 					preg_match('/centerOf\((\d+)\)/',$config['dataquery'],$centerof);					
 					preg_match('/centerOn\((\d+)\)/',$config['dataquery'],$centeron);
 					preg_match('/dissolveBy\((\d+)\,([a-z0-9_]+)\)/',$config['dataquery'],$dissolve);
+					
+					preg_match('/selectOn\((\d+)\,(.*)\)/',$config['dataquery'],$selecton);
+					
 					if (count($intersect) > 0)
 					{
 						$sql = "(SELECT * FROM ".$this->db->tablePrefix."iyo_data_".$intersect[1]." itc1,".$this->db->tablePrefix."iyo_data_".$intersect[2]." itc2 WHERE ST_INTERSECT(itc1.".$geom_col.",itc2.".$geom_col.")) as layer".$n;
@@ -444,6 +447,21 @@ class FormatXml extends Component
 							}						
 						}
 						$sql = "(SELECT ".$cols."(ST_POINTONSURFACE(cto1.".$geom_col.")) as ".$geom_col." FROM ".$this->db->tablePrefix."iyo_data_".$centeron[1]." cto1) as layer".$n;
+					}
+					elseif (count($selecton) > 0)
+					{
+						
+						$cols = $selecton[2];
+						if (substr($cols,0,1) == ',')
+						{
+							$cols = substr($cols,1);
+						}						
+						if (substr($cols,-1) == ',')
+						{
+							$cols = substr($cols,0,-1);
+						}
+						$cols .= $cols == ''?'':',';						
+						$sql = "(SELECT gid,".$cols."".$geom_col." FROM ".$this->db->tablePrefix."iyo_data_".$selecton[1]." slo1) as layer".$n;
 					}
 					else
 					{

@@ -23,28 +23,35 @@ class Record extends \yii\db\ActiveRecord
     
     public function __construct($dataId = false)
 	{
+		
 		if ($dataId)
 		{
 			self::$dataId = $dataId;		
 			$prefix = Yii::$app->db->tablePrefix;
 			
-			$go = false;
-			$data = Data::findOne($dataId);
-			if ($data)
-			{
-				if (in_array($data->status,[1,3]) && in_array($data->type,[0,1,2,3,4,5]))
+			$go = false;	
+			if (is_numeric($dataId))
+			{				
+				$data = Data::findOne($dataId);
+				if ($data)
 				{
-					$go = true;	
-				}
-			}						
+					if (in_array($data->status,[1,3]) && in_array($data->type,[0,1,2,3,4,5]))
+					{
+						$go = true;	
+					}
+				}						
+			}			
 			
 			if (!$go)
 			{
+				
 				//if (!$searchModel)
 				//{
 					return Yii::$app->controller->redirect(['//iyo/data/index']);
 				//}
+				
 			}
+			
 					
 			$table = $prefix.str_replace(["{{%","}}"],"",Data::tableName())."_".$dataId;
 			Yii::$app->session->set('RecordTable',$table);

@@ -1,5 +1,13 @@
 <?php
 	use yii\helpers\Html;
+	use yii\jui\AutoComplete;
+	
+	echo AutoComplete::widget([		
+		'name'=>'',						
+		'options'=>[
+			'class'=>'hidden'
+		]
+	]);
 ?>
 
 <div id="<?= $id ?>" class="iyo">

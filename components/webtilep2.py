@@ -171,7 +171,8 @@ class Tilep:
 		if isfromdir:
 			if os.path.exists(xmldir):
 				if tilename+'.xml' in os.listdir(xmldir):
-					xmlstr = open(xmldir+'/'+tilename+'.xml',"rb").read()							
+					xmlstr = open(xmldir+'/'+tilename+'.xml',"rb").read()
+					xmlstr = xmlstr.replace('{xmldir}', xmldir)					
 		
 		else:			
 			#tilep = Tilep()		
@@ -219,7 +220,7 @@ class Tilep:
 class clear_tile:
 	def GET(self, tilename):				
 		qs = web.input(r='',x='')								
-				
+		
 		tilep = Tilep()
 				
 		if qs.r != '':			
@@ -228,7 +229,7 @@ class clear_tile:
 			dbfilet = tilep.getDb(tilename)
 			if dbfilet :
 				call(["rm",dbfilet])
-				
+						
 		isforce = True
 		if qs.x == '':
 			isforce = False

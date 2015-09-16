@@ -160,7 +160,7 @@ class Data extends \yii\db\ActiveRecord
 		if (true);
 		{			
 			$module = Yii::$app->getModule('iyo');
-			$uploadDir = \Yii::getAlias($module->uploadDir);
+			$uploadDir = \Yii::getAlias($module->uploadDir);			
 			$tileDir = \Yii::getAlias($module->tileDir);
 			$geom_col = $module->geom_col;				
 			

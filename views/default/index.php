@@ -19,7 +19,7 @@
 		//$options = Yii::$app->db->createCommand("SELECT config FROM {{%iyo_map}} WHERE id = 1")->queryScalar();
 		//$mapOptions = json_decode($options,true);
 		//echo amilna\iyo\widgets\Map::widget(['options'=>$mapOptions]);
-		
+		$tileURL = \Yii::getAlias($module->tileURL);
 		echo amilna\iyo\widgets\Map::widget(['options'=>[
 			'name'=>'Peta Dasar',
 			'id'=>'peta_dasar',
@@ -48,7 +48,7 @@
 					'name'=>'Ini cuma layer sample yang dibuat dengan konfigurasi xml melalui folder xml',
 					'type'=>'tile',					
 					'geomtype'=>'Polygon',
-					'urls'=>["http".(!empty($module->sslKey)?"s":"")."://".(!empty($module->proxyhosts)?$module->proxyhosts[0]:($module->ipaddress.":".$module->ports[0]))."/world_style/{z}/{x}/{y}.png"],
+					'urls'=>["http".(!empty($module->sslKey)?"s":"")."://".(!empty($module->proxyhosts)?$module->proxyhosts[0]:($module->ipaddress.":".$module->ports[0])).$tileURL."/world_style/{z}/{x}/{y}.png"],
 					//'urls'=>["http://127.0.0.1:1400/yii2/webgisPEP/backend/web/tile/citrates/{z}/{x}/{y}.png"],					
 					
 					'fields'=>[

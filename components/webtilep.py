@@ -171,7 +171,8 @@ class Tilep:
 		if isfromdir:
 			if os.path.exists(xmldir):
 				if tilename+'.xml' in os.listdir(xmldir):
-					xmlstr = open(xmldir+'/'+tilename+'.xml',"rb").read()							
+					xmlstr = open(xmldir+'/'+tilename+'.xml',"rb").read()
+					xmlstr = xmlstr.replace('{xmldir}', xmldir)					
 		
 		else:			
 			#tilep = Tilep()		

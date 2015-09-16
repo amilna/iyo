@@ -204,7 +204,7 @@ $('#filesrc .kcf-thumbs').bind("DOMSubtreeModified",function(){
 			}			
 		});
 	}	
-	$('#data-filesrc').val(url.replace("<?= $module->uploadURL."/geos/"?>","").replace(/%3D/g,"="));	
+	$('#data-filesrc').val(url.replace("<?= Yii::getAlias($module->uploadURL)."/geos/"?>","").replace(/%3D/g,"="));	
 });
 	
 <?php $this->endBlock(); ?>

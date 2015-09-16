@@ -53,11 +53,11 @@ add in modules section of main config
 	],
 	'blog' => [
 		'class' => 'amilna\blog\Module',
-		/* 'userClass' => 'dektrium\user\models\User', // example if use another user class */
+		/* 'userClass' => 'dektrium\user\models\User', // example if use another user class, default is 'common\models\User' */
 	],
 	'iyo' => [
         'class' => 'amilna\iyo\Module',
-        'userClass' =>  'dektrium\user\models\User',//'common\models\User',
+        /* 'userClass' => 'dektrium\user\models\User', // example if use another user class, default is 'common\models\User' */
         'geom_col'=>'the_geom'
         /* see vendor/amilna/yii2-iyo/Module.php for more options */ 
     ],

@@ -12,6 +12,8 @@ class FormatData extends Component
 	private $dbname = null; 
 	private $prefix = null;
 	private $db = null;
+	private $dbusr = null;
+	private $dbpwd = null;
 	private $filename = false;
 	private $dataid = null;			
 	private $metadata = null;
@@ -41,6 +43,8 @@ class FormatData extends Component
 		$this->uploadDir = $uploadDir;
 		$this->tileDir = $tileDir;
 		$this->geom_col = $geom_col;		
+		$this->dbusr = $username;
+		$this->dbpwd = $password;
 		
 		$this->db = new \yii\db\Connection([
 				'dsn' => $dsn,
@@ -652,7 +656,7 @@ class FormatData extends Component
 				//$drop = $this->db->createCommand($sql)->execute();
 			}
 			
-			$psql = shell_exec("psql -q -d ".$this->dbname." < ".$filesql);
+			$psql = shell_exec("PGPASSWORD=".$this->dbpwd." psql -q -w -U ".$this->dbusr." -d ".$this->dbname." < ".$filesql);
 			
 			unlink($filesql);						
 			

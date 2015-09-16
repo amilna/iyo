@@ -34,13 +34,14 @@ class RecordController extends Controller
      * @return mixed
      */
     public function actionIndex($format= false,$arraymap= false,$term = false,$data = false)
-    {		                		
+    {		                				
+		
 		$searchModel = new RecordSearch($data);								
 		
 		$req = Yii::$app->request->queryParams;
 		if ($term) { $req[basename(str_replace("\\","/",get_class($searchModel)))]["term"] = $term;}        
 		$dataProvider = $searchModel->search($req);		
-
+	
         if ($format == 'json')
         {
 			$module = Yii::$app->getModule('iyo');
@@ -84,7 +85,7 @@ class RecordController extends Controller
 			return \yii\helpers\Json::encode($model);	
 		}
 		else
-		{
+		{			
 			return $this->render('index', [
 				'searchModel' => $searchModel,
 				'dataProvider' => $dataProvider,
@@ -182,10 +183,17 @@ class RecordController extends Controller
         {
 			return $this->redirect(['//iyo/data/index']);
 		}
-		$model = $this->findModel($data,$id);        
-        $model->isdel = 1;
-        $model->save();
-        //$model->delete(); //this will true delete
+		$model = $this->findModel($data,$id);
+		
+		if (isset($model->isdel))
+		{        
+			$model->isdel = 1;
+			$model->save();
+		}
+		else
+		{
+			$model->delete(); //this will true delete
+		}
         
         if ($format='json')
         {

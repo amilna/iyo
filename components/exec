@@ -14,6 +14,7 @@ require(__DIR__ . '/FormatData.php');
 require(__DIR__ . '/FormatXml.php');
 require(__DIR__ . '/../models/Data.php');
 require(__DIR__ . '/../models/Layer.php');
+require(__DIR__ . '/../models/LayDat.php');
 
 $dsn = false;
 $tablePrefix = false;

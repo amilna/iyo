@@ -79,8 +79,13 @@ class FormatTile extends Component
 		else
 		{						
 			$sql = "SELECT layer_id FROM ".LayDat::tableName()." 				
-				WHERE data_id = :id";				
-			$lids = $this->db->createCommand($sql)->bindValues([':id'=>$id])->queryAll();
+				WHERE data_id = :id";							
+			$lids0 = $this->db->createCommand($sql)->bindValues([':id'=>$id])->queryAll();
+			$lids = [];
+			foreach ($lids0 as $l0)
+			{
+				$lids[] = $l0['layer_id'];
+			}
 		}
 		
 		foreach ($lids as $lid)

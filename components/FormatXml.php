@@ -387,15 +387,15 @@ class FormatXml extends Component
 				$geom_col = $this->geom_col;
 				if (isset($config['dataquery']))
 				{
+					$config['dataquery'] = str_replace(["insert ","delete ","update "],"",strtolower($config['dataquery']));
+					
 					preg_match('/(\d+)/',$config['dataquery'],$qid);
 					//$sql = "(SELECT * FROM ".$model->db->tablePrefix."iyo_data_".count($did) > 0?$did[1]:$model->data_id.") as layer".$n;					
 					
 					preg_match('/intersect\((\d+)\,(\d+)\)/',$config['dataquery'],$intersect);
-					preg_match('/centerOf\((\d+)\)/',$config['dataquery'],$centerof);					
-					preg_match('/centerOn\((\d+)\)/',$config['dataquery'],$centeron);
-					preg_match('/dissolveBy\((\d+)\,([a-z0-9_]+)\)/',$config['dataquery'],$dissolve);
-					
-					preg_match('/selectOn\((\d+)\,(.*)\)/',$config['dataquery'],$selecton);
+					preg_match('/centerof\((\d+)\)/',$config['dataquery'],$centerof);					
+					preg_match('/centeron\((\d+)\)/',$config['dataquery'],$centeron);
+					preg_match('/dissolveby\((\d+)\,([a-z0-9_]+)\)/',$config['dataquery'],$dissolve);										
 					
 					if (count($intersect) > 0)
 					{
@@ -447,8 +447,14 @@ class FormatXml extends Component
 							}						
 						}
 						$sql = "(SELECT ".$cols."(ST_POINTONSURFACE(cto1.".$geom_col.")) as ".$geom_col." FROM ".$this->db->tablePrefix."iyo_data_".$centeron[1]." cto1) as layer".$n;
+					}					
+					else
+					{
+						$sql = "(SELECT * FROM ".$this->db->tablePrefix."iyo_data_".(count($qid) > 0?$qid[1]:$did).") as layer".$n;
 					}
-					elseif (count($selecton) > 0)
+						
+					preg_match('/selecton\((\d+)\,(.*)\)/',$config['dataquery'],$selecton);	
+					if (count($selecton) > 0)
 					{
 						
 						$cols = $selecton[2];
@@ -461,18 +467,25 @@ class FormatXml extends Component
 							$cols = substr($cols,0,-1);
 						}
 						$cols .= $cols == ''?'':',';						
-						$sql = "(SELECT gid,".$cols."".$geom_col." FROM ".$this->db->tablePrefix."iyo_data_".$selecton[1]." slo1) as layer".$n;
-					}
-					else
-					{
-						$sql = "(SELECT * FROM ".$this->db->tablePrefix."iyo_data_".(count($qid) > 0?$qid[1]:$did).") as layer".$n;
+						//$sql = "(SELECT gid,".$cols."".$geom_col." FROM ".$this->db->tablePrefix."iyo_data_".$selecton[1]." slo1) as layer".$n;
+						$sql = str_replace("(SELECT ","(SELECT ".$cols,$sql);
 					}
 					
+					preg_match('/where\((\d+)\,(.*)\)/',$config['dataquery'],$where);	
+					if (count($where) > 0)
+					{
+						
+						$qwhere = $where[2];						
+						$sql = str_replace(") as layer".$n," WHERE ".$qwhere.") as layer".$n,$sql);
+					}
 				}
 				else
 				{
 					$sql = "(SELECT * FROM ".$this->db->tablePrefix."iyo_data_".$did.") as layer".$n;
-				}
+				}								
+				
+				
+				
 				$table = $data->addChild('Parameter',$sql);
 				$table->addAttribute('name','table');
 				

@@ -322,12 +322,10 @@ class FormatData extends Component
 				}
 				$metadata["srcfile"] = "";					
 				
-				unset($metadata['isappend']);												
-				
-				$metadata = json_encode($metadata);																								
+				unset($metadata['isappend']);																				
 				
 				$sql = "UPDATE ".Data::tableName()." 
-					SET (metadata) = ('".str_replace("'","''",$metadata)."') 
+					SET (metadata) = ('".str_replace("'","''",json_encode($metadata))."') 
 					WHERE id = ".$this->dataid;
 
 				$res = !is_array($this->db->createCommand($sql)->execute());
@@ -382,12 +380,10 @@ class FormatData extends Component
 				$sql = "UPDATE ".$table." as t ".$sets." ".$vals." ".$froms." WHERE t.gid=d0.gid AND ST_isvalid(d0.".$geom_col.") AND ST_isvalid(d".$d.".".$geom_col.")";
 				$res = !is_array($this->db->createCommand($sql)->execute());												
 			}
-			unset($metadata['relational_columns_update']);								
-			
-			$metadata = json_encode($metadata);																								
+			unset($metadata['relational_columns_update']);																																			
 				
 			$sql = "UPDATE ".Data::tableName()." 
-				SET (metadata) = ('".str_replace("'","''",$metadata)."') 
+				SET (metadata) = ('".str_replace("'","''",json_encode($metadata))."') 
 				WHERE id = ".$this->dataid;
 
 			$res = !is_array($this->db->createCommand($sql)->execute());

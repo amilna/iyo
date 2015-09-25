@@ -136,7 +136,8 @@ class RecordController extends Controller
 			return $this->redirect(['//iyo/data/index']);
 		}
 		
-        $model = $this->findModel($data,$id);
+		$model = new Record($data);
+        $model = $this->findModel($model,$id);
         
         $module = Yii::$app->getModule('iyo');
 		$geom_col = $module->geom_col;
@@ -190,7 +191,8 @@ class RecordController extends Controller
 			return $this->redirect(['//iyo/data/index']);
 		}
         
-        $model = $this->findModel($data,$id);
+        $model = new Record($data);
+        $model = $this->findModel($model,$id);
 
         if ($model->load(Yii::$app->request->post()) && $model->save()) {
             return $this->redirect(['view', 'id' => $model->gid,'data'=>$model::$dataId]);
@@ -213,7 +215,9 @@ class RecordController extends Controller
         {
 			return $this->redirect(['//iyo/data/index']);
 		}
-		$model = $this->findModel($data,$id);
+		
+		$model = new Record($data);
+		$model = $this->findModel($model,$id);
 		
 		if (isset($model->isdel))
 		{        
@@ -240,13 +244,13 @@ class RecordController extends Controller
      * @return Data the loaded model
      * @throws NotFoundHttpException if the model cannot be found
      */
-    protected function findModel($data,$id)
+    protected function findModel($model,$id)
     {
-        if (!$data)
+        if (!$model)
         {
 			return $this->redirect(['//iyo/data/index']);
 		}
-        $model = new Record($data);
+        
         if (($model = $model->findOne($id)) !== null) {
             return $model;
         } else {

@@ -35,12 +35,14 @@ class Record extends \yii\db\ActiveRecord
 				$data = Data::findOne($dataId);
 				if ($data)
 				{
-					if (in_array($data->status,[1,3]) && in_array($data->type,[0,1,2,3,4,5]))
+					//if (in_array($data->status,[1,3]) && in_array($data->type,[0,1,2,3,4,5]))
+					if (in_array($data->type,[0,1,2,3,4,5]))
 					{
 						$go = true;	
 					}
 				}						
-			}			
+			}						
+						
 			
 			if (!$go)
 			{
@@ -50,21 +52,21 @@ class Record extends \yii\db\ActiveRecord
 					return Yii::$app->controller->redirect(['//iyo/data/index']);
 				//}
 				
-			}
-			
+			}		
 					
 			$table = $prefix.str_replace(["{{%","}}"],"",Data::tableName())."_".$dataId;
 			Yii::$app->session->set('RecordTable',$table);
 			Yii::$app->session->set('RecordDataId',$dataId);
+			self::$dynTableName = $table;
 		}
 		else
 		{
 			if (Yii::$app->session->has('RecordTable'))
 			{
-				$table = Yii::$app->session->get('RecordTable');				
+			//	$table = Yii::$app->session->get('RecordTable');				
 			}
 		}				
-		self::$dynTableName = $table;		
+		//self::$dynTableName = $table;		
 	}        
 	
 
@@ -139,7 +141,7 @@ class Record extends \yii\db\ActiveRecord
 			}
 			else
 			{
-				$rules[] = [$columns,'time', 'format' => 'yyyy-M-d H:m:s'];
+				$rules[] = [$columns,'date', 'format' => 'yyyy-M-d H:m:s'];
 			}
         }
 		

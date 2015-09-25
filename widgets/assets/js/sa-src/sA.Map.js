@@ -391,7 +391,7 @@ sA.Map.prototype.addLayer = function(lconf) {
 						if (dStyle)
 						{
 							styles.push(dStyle);
-						}
+						}												
 						
 						return styles;	
 				}	
@@ -461,13 +461,14 @@ sA.Map.prototype.mkResStyle = function(feature, resolution, sai) {
 	var oSbg = false;
 	
 	if (sai.isObj(feature.get('resolution')))
-	{									
+	{											
 		var radius = Math.ceil(feature.get('resolution')/resolution)*(Math.max(1,sai.map.getView().getZoom()-feature.get('zoom')))*4;		
+		
 		oSbg = new ol.style.Style({			
 			image : new ol.style.Circle({
 				radius: radius,								  
 				fill: new ol.style.Fill({
-					color: [0,0,0,0.1]
+					color: [100,100,100,0.1]
 				}),
 				stroke: new ol.style.Stroke({
 					color: [255,255,255,0.2],
@@ -1143,15 +1144,16 @@ sA.Map.prototype.initUiLayer = function(layer) {
 				}
 			})];
 			
+			/*
 			map.sai.select[1].on('select',function() {				
 				var fs = map.sai.select[1].getFeatures().getArray();
 				var f = fs[0];
 				if (map.sai.isObj(f))
-				{					
+				{								
 					map.sai.initUiAttributes(f,layer);
-				}	
-				
+				}					
 			});	
+			*/ 
 			
 			var selected_features = map.sai.select[1].getFeatures();
 			// when a feature is selected...
@@ -1260,20 +1262,23 @@ sA.Map.prototype.initUiAttributes = function(f,layer) {
 	var map = this.map;	
 	var lconf = layer.conf;		
 	
-	if (map.sai.layerEditor != null && map.sai.featureOnEdit !=  null)
-	{
-		map.sai.unHighlightFeature([map.sai.featureOnEdit,map.sai.layerEditor],true);	
+	if (lconf.type == 'geojson')
+	{	
+		if (map.sai.layerEditor != null && map.sai.featureOnEdit !=  null)
+		{
+			map.sai.unHighlightFeature([map.sai.featureOnEdit,map.sai.layerEditor],true);	
+		}				
+		
+		if (map.sai.isObj(map.sai.layerEditor.get('name')))
+		{
+			map.sai.highlightFeature(f,layer);
+		}			
 	}
 	
 	map.sai.featureOnEdit = f;
-	
+		
 	map.sai.select[1].getFeatures().clear();
 	map.sai.select[1].getFeatures().push(f);	
-	
-	if (map.sai.isObj(map.sai.layerEditor.get('name')))
-	{
-		map.sai.highlightFeature(f,layer);
-	}			
 	
 	var layid = "layer_"+lconf.name.toLowerCase().replace(/[^a-zA-Z0-9]/g,"_");	
 	
@@ -1880,6 +1885,11 @@ sA.Map.prototype.mkStyle = function(feature,layer,isHighlight,sai) {
 
 sA.Map.prototype.unHighlightFeature = function(featureHighlight,isforced) {			
 	
+	if (!this.isObj(featureHighlight[1].conf))
+	{
+		return true;
+	}				
+	
 	if (featureHighlight[0] != this.featureOnEdit || this.isObj(isforced) )
 	{											
 		var sai = this;				
@@ -2002,6 +2012,11 @@ sA.Map.prototype.getUtfGridData = function(evt) {
 };	
 
 sA.Map.prototype.highlightFeature = function(feature,layer) {	
+		
+	if (!this.isObj(layer.conf))
+	{
+		return this.featureHighlight;
+	}				
 	
 	this.featureHighlight = [feature,layer];		
 		
@@ -2233,8 +2248,8 @@ sA.Map.prototype.mapOnMouseMove = function(evt) {
 			}						
 			
 			if (ugdata.length > 2)
-			{			
-				sai.highlightFeature(ugdata[2],ugdata[0]);				
+			{							
+				sai.highlightFeature(ugdata[2],ugdata[0]);									
 				
 				if (textf.indexOf(text) < 0 && textd.indexOf(text) < 0)
 				{
@@ -2372,11 +2387,12 @@ sA.Map.prototype.mapOnMouseClick = function(evt) {
 						}						
 						
 						//xhr
-						var exists = sai.layerEditor.getSource().getFeatureById(ugdata[1].gid);
-						//console.log(ugdata[1].gid,exists);
+						var exists = sai.layerEditor.getSource().getFeatureById(ugdata[1].gid);						
 						
 						if (exists)
 						{														
+							//console.log(ugdata[1].gid,sai.featureHighlight[0]);
+							
 							if (sai.featureHighlight[0] != null)
 							{
 								var feature = sai.featureHighlight[0];

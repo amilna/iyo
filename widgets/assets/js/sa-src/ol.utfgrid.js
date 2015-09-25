@@ -478,14 +478,14 @@ ol.utfGrid.prototype.renderPoint = function(tile) {
 								//iconFeature.set('maxzoom',maxz);
 								//vectorLayer.getSource().removeFeature(oldf);
 								//vectorLayer.getSource().addFeature(iconFeature);																
-								ug.map.render();
+								//ug.map.render();
 							}
 						}
 						else
 						{							
 							iconFeature.set('maxzoom',zoom);
-							vectorLayer.getSource().addFeature(iconFeature);							
-						}
+							vectorLayer.getSource().addFeature(iconFeature);														
+						}						
 						
 																		
 						
@@ -495,6 +495,7 @@ ol.utfGrid.prototype.renderPoint = function(tile) {
 			}
 		}
 	}
+	ug.map.render();
 	
 	
 

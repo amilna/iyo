@@ -1644,6 +1644,7 @@ sA.Map.prototype.getStyle = function(featureHighlight,sai) {
 					}	
 					
 					try {
+						tesv = tesv.replace(/(?:\r\n|\r|\n)/g,'');
 						var evalv = (eval(tesv));
 					}						
 					catch (e) {

@@ -33,7 +33,7 @@ class RecordController extends Controller
      * @params string $format, array $arraymap, string $term
      * @return mixed
      */
-    public function actionIndex($format= false,$arraymap= false,$term = false,$data = false)
+    public function actionIndex($format= false,$arraymap= false,$term = false,$data = false,$results = false)
     {		                				
 		
 		$searchModel = new RecordSearch($data);								
@@ -56,7 +56,12 @@ class RecordController extends Controller
 					$map = explode(",",$arraymap);
 					if (count($map) == 1)
 					{
-						$obj = $d[$arraymap];
+						$arrm = explode("~",$arraymap);
+						$obj = "";						
+						foreach ($arrm as $rm)
+						{														
+							$obj .= (isset($d[$rm])?$d[$rm]:" ");
+						}						
 					}
 					else
 					{
@@ -65,7 +70,25 @@ class RecordController extends Controller
 						{
 							$k = explode(":",$a);						
 							$v = (count($k) > 1?$k[1]:$k[0]);
-							$obj[$k[0]] = ($v == "Obj"?json_encode($d->attributes):(isset($d->$v)?$d->$v:null));
+							
+							$arrm = explode("~",$v);
+							$objs = "";															
+														
+							if ($v == "Obj")
+							{
+								$obj[$k[0]] = json_encode($d->attributes);
+							}
+							else
+							{
+								$arrm = explode("~",$v);
+								$objs = "";
+								
+								foreach ($arrm as $rm)
+								{
+									$objs .= (isset($d->$rm)?$d->$rm:" ");									
+								}
+								$obj[$k[0]] = $objs;								
+							}
 						}
 					}
 				}
@@ -81,8 +104,15 @@ class RecordController extends Controller
 				{	
 					array_push($model,$obj);
 				}
-			}					
-			return \yii\helpers\Json::encode($model);	
+			}
+			if ($results)
+			{
+				return \yii\helpers\Json::encode(["results"=>$model]);		
+			}
+			else
+			{
+				return \yii\helpers\Json::encode($model);	
+			}								
 		}
 		else
 		{			

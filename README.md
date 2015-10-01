@@ -63,17 +63,6 @@ add in modules section of main config
     ],
 ```
 
-add in components section of main config
-
-```
-    'components' => [        
-        'errorHandler' => [
-            'errorAction' => 'iyo/data/error',
-        ],  
-    ],
-
-```
-
 Set .htaccess
 
 ```

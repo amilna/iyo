@@ -191,17 +191,17 @@
 <div id="iyo-template-dms-form" class="noprint hidden">
 	<div id="dms_:N" class="dms">	
 		<div class="row">			
-			<div class="col-xs-6" style="padding-right:0px;">																										
-				<div class="input-group">				  
-				  <div title="<?= Yii::t("app","First row for x (absis),\r\nsecond row for y (ordinat).\r\nPrepend a minus (-) on degree value\r\nfor negative value!")?>" class="input-group-addon" style="cursor:pointer;">x / y</div>
-				  <input name="Dms[coord][:N][degreex]" id="Dms_coord_:N_degreex" type="text" class="form-control" placeholder="<?= Yii::t("app","Degree")?>" title="<?= Yii::t("app","X Degree")?>">				  
-				</div>
-			</div>	
+			<div class="col-xs-4" style="padding-right:0px;">																						
+				<?= Html::textInput("Dms[coord][:N][degreex]",false,["id"=>"Dms_coord_:N_degreex","class"=>"form-control","placeholder"=>Yii::t("app","Degree"),"title"=>Yii::t("app","X Degree"),"style"=>"width:100%"]) ?>
+			</div>
 			<div class="col-xs-3" style="padding-left:0px;padding-right:0px;">																						
 				<?= Html::textInput("Dms[coord][:N][minutex]",false,["id"=>"Dms_coord_:N_minutex","class"=>"form-control","placeholder"=>Yii::t("app","Minute"),"title"=>Yii::t("app","X Minute"),"style"=>"width:100%"]) ?>
 			</div>
-			<div class="col-xs-3" style="padding-left:0px;">																										
-				<?= Html::textInput("Dms[coord][:N][secondx]",false,["id"=>"Dms_coord_:N_secondx","class"=>"form-control","placeholder"=>Yii::t("app","Second"),"title"=>Yii::t("app","X Second"),"style"=>"width:100%"]) ?>
+			<div class="col-xs-5" style="padding-left:0px;">																										
+				<div class="input-group">				  
+				  <input name="Dms[coord][:N][secondx]" id="Dms_coord_:N_secondx" type="text" class="form-control" placeholder="<?= Yii::t("app","Second")?>" title="<?= Yii::t("app","X Second")?>">
+				  <div id="dms-del:N" title="<?= Yii::t("app","First row for x (absis),\r\nsecond row for y (ordinat).\r\nPrepend a minus (-) on degree value\r\nfor negative value!")?>" class="input-group-addon" style="padding: 6px 2px;"><i class="glyphicon glyphicon-question-sign"></i></div>
+				</div>
 			</div>			
 		</div>						
 		<div class="row">			
@@ -214,7 +214,7 @@
 			<div class="col-xs-5" style="padding-left:0px;">																										
 				<div class="input-group">				  
 				  <input name="Dms[coord][:N][secondy]" id="Dms_coord_:N_secondy" type="text" class="form-control" placeholder="<?= Yii::t("app","Second")?>" title="<?= Yii::t("app","Y Second")?>">
-				  <div id="dms-del:N" title="<?= Yii::t("app","Remove Coordinate")?>" class="input-group-addon" style="cursor:pointer;"><i class="glyphicon glyphicon-trash"></i></div>
+				  <div id="dms-del:N" title="<?= Yii::t("app","Remove Coordinate")?>" class="input-group-addon" style="cursor:pointer;padding: 6px 2px;"><i class="glyphicon glyphicon-trash"></i></div>
 				</div>
 			</div>			
 		</div>

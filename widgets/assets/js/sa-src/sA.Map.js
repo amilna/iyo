@@ -1919,7 +1919,7 @@ sA.Map.prototype.unHighlightFeature = function(featureHighlight,isforced) {
 };	
 
 
-sA.Map.prototype.getUtfGridData = function(evt) {			
+sA.Map.prototype.getUtfGridData = function(evt,isall) {			
 	
 	var lonlat = ol.proj.transform(evt.coordinate,
 				"EPSG:3857", "EPSG:4326");
@@ -1984,12 +1984,12 @@ sA.Map.prototype.getUtfGridData = function(evt) {
 	
 	if (sai.isObj(evt.map.utfGrids))
 	{
-		var utfGrids = evt.map.utfGrids;		
-			
+		var utfGrids = evt.map.utfGrids;				
+		var isall = (sai.isObj(isall)?isall:false);
 		for (var g=0;g<utfGrids.length;g++)
 		{
 			var ug = utfGrids[g];				
-			if (!ug.render && ug.layer.getVisible())
+			if (!ug.render && (ug.layer.getVisible() || isall))
 			{
 				var flonlat = ug.fixLonlat(lonlat);
 				var d = ug.getData(flonlat);						
@@ -2240,7 +2240,12 @@ sA.Map.prototype.mapOnMouseMove = function(evt) {
 						var field = mkutf[f];
 						if (sai.isObj(ugdata[1][field.name]))
 						{
-							text += (text == ""?"":", ") + "<strong>" + field.alias + "</strong> " + ugdata[1][field.name];	
+							var otext = "<strong>" + field.alias + "</strong> " + ugdata[1][field.name];
+							//console.log(textf,textd,otext);
+							if (textf.indexOf(otext) < 0 && textd.indexOf(otext) < 0)
+							{
+								text += (text == ""?"":", ") + otext;	
+							}
 						}																					
 					}						
 				}
@@ -2537,12 +2542,20 @@ sA.Map.prototype.mapOnMouseClick = function(evt) {
 												url = reformat(str,field.type[1].reformat[0],field.type[1].reformat[1]);
 											}
 											str = '<a href="'+url+'" target="blank">' + str + '</a>';
-											text += (text == ""?"":", ") + "<strong>" + field.alias + "</strong> " + str;
+											var otext = "<strong>" + field.alias + "</strong> " + str;										
+											if (textf.indexOf(otext) < 0 && textd.indexOf(otext) < 0)
+											{
+												text += (text == ""?"":", ") + otext;
+											}	
 										}										
 									}
 									else
 									{									
-										text += (text == ""?"":", ") + "<strong>" + field.alias + "</strong> " + str;	
+										var otext = "<strong>" + field.alias + "</strong> " + str;										
+										if (textf.indexOf(otext) < 0 && textd.indexOf(otext) < 0)
+										{
+											text += (text == ""?"":", ") + otext;	
+										}										
 									}	
 								}
 							}
@@ -2895,7 +2908,10 @@ sA.Map.prototype.mkUiSearch = function() {
 					{
 						if (key != map.sai.geom_col)
 						{
-							var vstr = res[r][key]+'';
+							var vstr = res[r][key]+'';							
+							vstr = vstr.replace(/<\/?[^>]+(>|$)/g, "");
+							vstr = vstr.substr(0,300);							
+							
 							pn += 1;
 							if (pn >= 0)							
 							{

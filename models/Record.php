@@ -10,65 +10,42 @@ use yii\db\Schema;
  */
 class Record extends \yii\db\ActiveRecord
 {
-    public static $dynTableName;
-    public static $dataId;
+    public static $dataId = false;
     
-    /**
-     * @inheritdoc
-     */
-    public static function tableName()
-    {                
-        return self::$dynTableName;
-    }        
-    
-    public function __construct($dataId = false)
-	{
-		
-		if ($dataId)
-		{
-			self::$dataId = $dataId;		
-			$prefix = Yii::$app->db->tablePrefix;
-			
-			$go = false;	
-			if (is_numeric($dataId))
-			{				
-				$data = Data::findOne($dataId);
-				if ($data)
-				{
-					//if (in_array($data->status,[1,3]) && in_array($data->type,[0,1,2,3,4,5]))
-					if (in_array($data->type,[0,1,2,3,4,5]))
-					{
-						$go = true;	
-					}
-				}						
-			}						
-						
-			
-			if (!$go)
+    public function __construct($id = false, array $config = [])
+    {
+        	
+		if (is_numeric($id))
+		{				
+			$data = Data::findOne($id);
+			if ($data)
 			{
-				
-				//if (!$searchModel)
-				//{
-					return Yii::$app->controller->redirect(['//iyo/data/index']);
-				//}
-				
-			}		
-					
-			$table = $prefix.str_replace(["{{%","}}"],"",Data::tableName())."_".$dataId;
-			Yii::$app->session->set('RecordTable',$table);
-			Yii::$app->session->set('RecordDataId',$dataId);
-			self::$dynTableName = $table;
-		}
+				static::$dataId = $id;					
+			}						
+		}										
+							
+		parent::__construct($config);		
+    }
+    
+    public static function tableName()
+    {
+        if (static::$dataId) {
+			return '{{%'.str_replace(["{{%","}}"],"",Data::tableName())."_".static::$dataId.'}}';
+		}	
 		else
 		{
-			if (Yii::$app->session->has('RecordTable'))
-			{
-			//	$table = Yii::$app->session->get('RecordTable');				
-			}
-		}				
-		//self::$dynTableName = $table;		
+			return Yii::$app->controller->redirect(['//iyo/data/index']);			
+		}	        
+    }        
+    
+    public static function find($id = false)
+	{		
+		if ($id)
+		{
+			static::$dataId = $id;
+		}
+		return Yii::createObject(\yii\db\ActiveQuery::className(), [get_called_class(), ['from' => [static::tableName()]]]);
 	}        
-	
 
     /**
      * @inheritdoc
@@ -242,25 +219,52 @@ class Record extends \yii\db\ActiveRecord
 		$geom_col = $module->geom_col;
 		
 		return $this->db->createCommand(
-			"SELECT ST_AsGeoJSON(ST_Transform(".$geom_col.",4326),4,0) as geojson FROM ".(self::$dynTableName)." WHERE gid = :gid"
+			"SELECT ST_AsGeoJSON(ST_Transform(".$geom_col.",4326),4,0) as geojson FROM ".(static::tableName())." WHERE gid = :gid"
 		)->bindValues([":gid"=>$this->gid])->queryScalar();
 		
 	}
-    
-    
-	public function getData()
+	
+	public static function asGeojson($data)
     {
-        if (Yii::$app->session->has('RecordDataId'))
+		$module = Yii::$app->getModule('iyo');
+		$geom_col = $module->geom_col;		
+		
+		if (is_array($data))
 		{
-			$dataId = Yii::$app->session->get('RecordDataId');				
+			$features = [];
+			foreach ($data as $d)
+			{
+				$features[] = static::asGeojson($d);				
+			}	
+			
+			return [
+					"type"=> "FeatureCollection",
+					"crs"=>[
+						"type"=> "name",
+						"properties"=> [
+							"name"=> "EPSG:4326"
+						]
+					],
+					"features"=>$features
+				];
 		}
 		else
 		{
-			$tbl = $this->tableName();        
-			preg_match('/_(\d+)/', $tbl, $matches);        
-			$dataId = $matches[1];
-		}
-        return Data::findOne($dataId);
+			$properties = $data->attributes;
+			unset($properties[$geom_col]);
+			
+			return [
+						"type"=> "Feature",
+						"properties"=> $properties,
+						"geometry"=> json_decode($data->geojson)
+					];		
+		}			
+		
+	}
+        
+	public function getData()
+    {        		
+        return Data::findOne(static::$dataId);
     }
         
 

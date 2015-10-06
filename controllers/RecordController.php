@@ -33,15 +33,14 @@ class RecordController extends Controller
      * @params string $format, array $arraymap, string $term
      * @return mixed
      */
-    public function actionIndex($format= false,$arraymap= false,$term = false,$data = false,$results = false)
-    {		                				
-		
+    public function actionIndex($format= false,$arraymap= false,$term = false,$data = false)
+    {		                		
 		$searchModel = new RecordSearch($data);								
 		
 		$req = Yii::$app->request->queryParams;
 		if ($term) { $req[basename(str_replace("\\","/",get_class($searchModel)))]["term"] = $term;}        
 		$dataProvider = $searchModel->search($req);		
-	
+
         if ($format == 'json')
         {
 			$module = Yii::$app->getModule('iyo');
@@ -56,12 +55,7 @@ class RecordController extends Controller
 					$map = explode(",",$arraymap);
 					if (count($map) == 1)
 					{
-						$arrm = explode("~",$arraymap);
-						$obj = "";						
-						foreach ($arrm as $rm)
-						{														
-							$obj .= (isset($d[$rm])?$d[$rm]:" ");
-						}						
+						$obj = $d[$arraymap];
 					}
 					else
 					{
@@ -70,25 +64,7 @@ class RecordController extends Controller
 						{
 							$k = explode(":",$a);						
 							$v = (count($k) > 1?$k[1]:$k[0]);
-							
-							$arrm = explode("~",$v);
-							$objs = "";															
-														
-							if ($v == "Obj")
-							{
-								$obj[$k[0]] = json_encode($d->attributes);
-							}
-							else
-							{
-								$arrm = explode("~",$v);
-								$objs = "";
-								
-								foreach ($arrm as $rm)
-								{
-									$objs .= (isset($d->$rm)?$d->$rm:" ");									
-								}
-								$obj[$k[0]] = $objs;								
-							}
+							$obj[$k[0]] = ($v == "Obj"?json_encode($d->attributes):(isset($d->$v)?$d->$v:null));
 						}
 					}
 				}
@@ -104,18 +80,15 @@ class RecordController extends Controller
 				{	
 					array_push($model,$obj);
 				}
-			}
-			if ($results)
-			{
-				return \yii\helpers\Json::encode(["results"=>$model]);		
-			}
-			else
-			{
-				return \yii\helpers\Json::encode($model);	
-			}								
+			}					
+			return \yii\helpers\Json::encode($model);
+		}
+		elseif ($format == 'geojson')
+		{									
+			return \yii\helpers\Json::encode(Record::asGeojson($dataProvider->getModels()));	
 		}
 		else
-		{			
+		{
 			return $this->render('index', [
 				'searchModel' => $searchModel,
 				'dataProvider' => $dataProvider,
@@ -136,8 +109,7 @@ class RecordController extends Controller
 			return $this->redirect(['//iyo/data/index']);
 		}
 		
-		$model = new Record($data);
-        $model = $this->findModel($model,$id);
+        $model = $this->findModel($data,$id);
         
         $module = Yii::$app->getModule('iyo');
 		$geom_col = $module->geom_col;
@@ -191,8 +163,7 @@ class RecordController extends Controller
 			return $this->redirect(['//iyo/data/index']);
 		}
         
-        $model = new Record($data);
-        $model = $this->findModel($model,$id);
+        $model = $this->findModel($data,$id);
 
         if ($model->load(Yii::$app->request->post()) && $model->save()) {
             return $this->redirect(['view', 'id' => $model->gid,'data'=>$model::$dataId]);
@@ -215,19 +186,10 @@ class RecordController extends Controller
         {
 			return $this->redirect(['//iyo/data/index']);
 		}
-		
-		$model = new Record($data);
-		$model = $this->findModel($model,$id);
-		
-		if (isset($model->isdel))
-		{        
-			$model->isdel = 1;
-			$model->save();
-		}
-		else
-		{
-			$model->delete(); //this will true delete
-		}
+		$model = $this->findModel($data,$id);        
+        $model->isdel = 1;
+        $model->save();
+        //$model->delete(); //this will true delete
         
         if ($format='json')
         {
@@ -244,13 +206,13 @@ class RecordController extends Controller
      * @return Data the loaded model
      * @throws NotFoundHttpException if the model cannot be found
      */
-    protected function findModel($model,$id)
+    protected function findModel($data,$id)
     {
-        if (!$model)
+        if (!$data)
         {
 			return $this->redirect(['//iyo/data/index']);
 		}
-        
+        $model = new Record($data);
         if (($model = $model->findOne($id)) !== null) {
             return $model;
         } else {

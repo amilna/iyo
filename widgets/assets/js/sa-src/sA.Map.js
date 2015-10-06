@@ -348,28 +348,40 @@ sA.Map.prototype.addLayer = function(lconf) {
 	else if	(lconf.type == "geojson")
 	{
 		var urls = [];
-		for (var u=lconf.urls.length-1;u>=0;u--)
-		{
-			urls.push(lconf.urls[u]);
-		}
-		//console.log(urls);
-		
 		var isjson = false;
-		if (urls[0].replace(".json") != urls[0])
+		
+		var geojson = new ol.format.GeoJSON();				
+		var src = null;													
+		var features = [];
+		if (this.isObj(lconf.source))
 		{
-			isjson = true;
-			
-			var source = new ol.source.Vector({
-				features: []
-			});												
+			src = JSON.parse(lconf.source);					
+			features = geojson.readFeatures(src,{dataProjection:"EPSG:4326",featureProjection:"EPSG:3857"});						
 		}
-		else
+		
+		var source = new ol.source.Vector({					
+			features: features
+		});
+		
+		if (this.isObj(lconf.urls))
 		{
-			var source = new ol.source.GeoJSON({
-				'projection': this.map.getView().getProjection(),
-				'url': urls[0]
-			});	
-		}				
+			for (var u=lconf.urls.length-1;u>=0;u--)
+			{
+				urls.push(lconf.urls[u]);
+			}
+			
+			if (urls[0].replace(".json") != urls[0])
+			{
+				isjson = true;																			
+			}
+			else
+			{									 										
+				source = new ol.source.Vector({					
+							format: geojson,
+							url : urls[0]
+						});	
+			}				
+		}
 		
 		var sai = this;
 		var olayer = new ol.layer.Vector({name : lconf.name});
@@ -1596,11 +1608,38 @@ sA.Map.prototype.getStyle = function(featureHighlight,sai) {
 	var sai = (typeof sai == "undefined"?this:sai);
 	var style = false;	
 	var conf = (sai.isObj(featureHighlight[1].conf)?featureHighlight[1].conf:false);
+	
+	var readStyle = function(arule)  {
+		style = {};	
+		if (sai.isObj(arule.style))
+		{
+			style = arule.style;
+		}
+		
+		if (sai.isObj(arule.polygonSymbolizer))
+		{
+			var sym = arule.polygonSymbolizer;
+			for (key in sym)
+			{
+				style[key] = sym[key];
+			}							
+		}
+		
+		if (sai.isObj(arule.lineSymbolizer))
+		{
+			var sym = arule.lineSymbolizer;
+			for (key in sym)
+			{
+				style[key] = sym[key];
+			}							
+		}
+		return style;
+	};
 		
 	if (conf)
 	{		
 		if (sai.isObj(conf.rules))
-		{						
+		{									
 			for (f=0;f<conf.rules.length;f++)
 			{
 				
@@ -1657,17 +1696,18 @@ sA.Map.prototype.getStyle = function(featureHighlight,sai) {
 					}
 					
 					if (evalv)
-					{
-						style = conf.rules[f].style;
+					{												
+						style = readStyle(conf.rules[f]);													
 					}
 				
 				}														
 			}
 			
 			if (!style)
-			{
-				style = conf.rules[conf.rules.length-1].style;					
+			{								
+				style = readStyle(conf.rules[conf.rules.length-1]);													
 			}
+						
 																	
 		}
 	}
@@ -1679,6 +1719,21 @@ sA.Map.prototype.mkStyle = function(feature,layer,isHighlight,sai) {
 	
 	var sai = (typeof sai == "undefined"?this:sai);
 	var reStyle = false;	
+	
+	var hexToRgb = function (hex) {
+		// Expand shorthand form (e.g. "03F") to full form (e.g. "0033FF")
+		var shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
+		hex = hex.replace(shorthandRegex, function(m, r, g, b) {
+			return r + r + g + g + b + b;
+		});
+
+		var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+		return result ? {
+			r: parseInt(result[1], 16),
+			g: parseInt(result[2], 16),
+			b: parseInt(result[3], 16)
+		} : null;
+	};
 	
 	var tk = [];
 	for (key in layer)
@@ -1701,11 +1756,11 @@ sA.Map.prototype.mkStyle = function(feature,layer,isHighlight,sai) {
 	else
 	{		
 		var dstyle = sai.getStyle([feature,layer],sai);
-		var scale = dstyle.scale+(sai.isObj(isHighlight)?0.3:0);
-		var opacity = Math.min(dstyle.opacity+(sai.isObj(isHighlight)?0.3:0),1);	
-		var radius = dstyle.radius*(sai.isObj(isHighlight)?2:1);
+		var scale = sai.isObj(dstyle.scale)?(dstyle.scale+(sai.isObj(isHighlight)?0.3:0)):undefined;
+		var opacity = Math.min((sai.isObj(dstyle.opacity)?dstyle.opacity:1)+(sai.isObj(isHighlight)?0.3:0),1);	
+		var radius = sai.isObj(dstyle.radius)?(dstyle.radius*(sai.isObj(isHighlight)?2:1)):undefined;
 		var label = sai.isObj(dstyle.label)?dstyle.label:false;	
-		var topacity = Math.min(dstyle.opacity+(sai.isObj(isHighlight)?1:-0.3),1);
+		var topacity = Math.min((sai.isObj(dstyle.opacity)?dstyle.opacity:1)+(sai.isObj(isHighlight)?1:-0.3),1);
 		
 		var labelAttribute = '';
 		if (label)
@@ -1868,7 +1923,65 @@ sA.Map.prototype.mkStyle = function(feature,layer,isHighlight,sai) {
 		}
 		else
 		{
-			oStyle = new ol.style.Style();	
+			var convent = {
+					'fill':'color',
+					'fillOpacity':'opacity',
+					'stroke':'color',
+					'strokeOpacity':'opacity',
+					'strokeWidth':'width'
+				};
+				
+			var fillopt = {};
+			var strokeopt = {};
+			for (key in dstyle)
+			{
+				var val = dstyle[key];
+				if (convent[key] == 'color' && val.substr(0,1) == '#')
+				{
+					var nc = hexToRgb(val);
+					val = 'rgba('+ nc.r +', '+ nc.g +', '+ nc.b +', 1)';
+				}
+				
+				if (sai.inArray(convent[key],['width','opacity']) >= 0)
+				{
+					val = parseFloat(val);
+				}
+				
+				if (key.substr(0,4) == 'fill')
+				{															
+					fillopt[convent[key]] = val;
+					
+				}
+				else if (key.substr(0,6) == 'stroke')
+				{
+					strokeopt[convent[key]] = val;
+				}					
+			}
+			
+		
+			if (sai.isObj(fillopt.opacity))
+			{
+				fillopt.opacity = Math.min(fillopt.opacity+(sai.isObj(isHighlight)?0.3:0),1);
+				fillopt.color = fillopt.color.replace(/(\d+)\)/,fillopt.opacity+')');
+			}	
+			
+			if (sai.isObj(strokeopt.opacity))
+			{
+				strokeopt.opacity = Math.min(strokeopt.opacity+(sai.isObj(isHighlight)?0.3:0),1);
+				strokeopt.color = strokeopt.color.replace(/(\d+)\)/,strokeopt.opacity+')');
+			}							
+			
+			styleopt = {};
+			if (fillopt != {})
+			{
+				styleopt.fill = new ol.style.Fill(fillopt);	
+			}
+			if (strokeopt != {})
+			{
+				styleopt.stroke = new ol.style.Stroke(strokeopt);	
+			}
+			
+			oStyle = new ol.style.Style(styleopt);				
 		}
 		
 		if (sai.isObj(feature.get('maxzoom')))
@@ -2202,7 +2315,7 @@ sA.Map.prototype.mapOnMouseMove = function(evt) {
 		}
 	}	
 	
-	var data = sai.getUtfGridData(evt);			
+	var data = sai.getUtfGridData(evt);		
 	
 	var textf = "";						
 	var textd = "";
@@ -2273,25 +2386,25 @@ sA.Map.prototype.mapOnMouseMove = function(evt) {
 		{
 			//console.log(ugdata);	
 		}		
-	}					
+	}		
 	
 	var hdms = ol.coordinate.toStringHDMS(ol.proj.transform(
-			evt.coordinate, "EPSG:3857", "EPSG:4326"));
-		
+			evt.coordinate, "EPSG:3857", "EPSG:4326"));		
 	
 	var text = textf + (textf == ""?"":"<br>") + textd; 	
 	text = text.replace(/null/g,"");
 		
 	var info = $("#" + sai.id + " .iyo-info");
 	var inset = $("#" + sai.id + " .iyo-inset");
-		
-	info.html(text);	
-	
+									
+	info.html(text);
+			
 	if (text != "")
-	{					
-		info.css("display","block");
+	{									
+		
+		info.css("display","block");		
 		inset.css("display","none");
-				
+		
 		if (evt.originalEvent.shiftKey && sai.isObj(sai.draw)) {
 			if (sai.draw[1].getActive())
 			{
@@ -2309,9 +2422,10 @@ sA.Map.prototype.mapOnMouseMove = function(evt) {
 	}
 	else
 	{
+
 		info.css("display","none");
-		inset.css("display","block");
-		
+		inset.css("display","block");				
+
 		if (sai.isObj(sai.draw))
 		{
 			if (sai.draw[1].getActive())
@@ -2331,6 +2445,8 @@ sA.Map.prototype.mapOnMouseMove = function(evt) {
 	
 	var coordbox = $("#" + sai.id + " .iyo-coordinate");	
 	coordbox.html(hdms);	
+	
+	
 };
 
 
@@ -2579,7 +2695,11 @@ sA.Map.prototype.mapOnMouseClick = function(evt) {
 				{
 					textf += (textf == ""?"":"<br>") + text;
 				}
-				evt.coordinate = ugdata[2].getGeometry().getCoordinates();
+				
+				if (ugdata[2].getGeometry().getType() == 'Point')
+				{
+					evt.coordinate = ugdata[2].getGeometry().getCoordinates();
+				}	
 			}
 			else
 			{

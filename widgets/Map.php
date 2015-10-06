@@ -45,6 +45,8 @@ class Map extends Widget
 			$sock = (!$sock?false:@fsockopen($ipaddr,$port,$num,$error,1));
 		}
 		
+		//$sock = true;
+		
 		if (!$sock && in_array($module->tileServer,['webpy','nodejs'])) {						
 			$pyFile = \Yii::getAlias($module->pyFile);
 			$webpyFile = \Yii::getAlias($module->webpyFile);

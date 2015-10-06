@@ -29,12 +29,12 @@ class LayerSearch extends Layer
         ];
     }
 
-	/* uncomment to undisplay deleted records (assumed the table has column isdel)
+	/* uncomment to undisplay deleted records (assumed the table has column isdel) */
 	public static function find()
 	{
 		return parent::find()->where([Layer::tableName().'.isdel' => 0]);
 	}
-	*/
+	
 
     /**
      * @inheritdoc

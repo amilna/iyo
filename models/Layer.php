@@ -184,53 +184,56 @@ class Layer extends \yii\db\ActiveRecord
     {		
 		$dids = $this->data_id != null?[$this->data_id]:[];
 		$configs = json_decode($this->config,true);
-		foreach ($configs as $config)
+		if ($configs)
 		{
-			if (isset($config['dataquery']))
+			foreach ($configs as $config)
 			{
-				preg_match('/(\d+)/',$config['dataquery'],$qid);				
-				preg_match('/intersect\((\d+)\,(\d+)\)/',$config['dataquery'],$intersect);
-				preg_match('/centerOf\((\d+)\)/',$config['dataquery'],$centerof);					
-				preg_match('/centerOn\((\d+)\)/',$config['dataquery'],$centeron);
-				preg_match('/dissolveBy\((\d+)\,([a-z0-9_]+)\)/',$config['dataquery'],$dissolve);
-				
-				if (count($qid) > 0)
+				if (isset($config['dataquery']))
 				{
-					if (!in_array(intval($qid[1]),$dids))
+					preg_match('/(\d+)/',$config['dataquery'],$qid);				
+					preg_match('/intersect\((\d+)\,(\d+)\)/',$config['dataquery'],$intersect);
+					preg_match('/centerOf\((\d+)\)/',$config['dataquery'],$centerof);					
+					preg_match('/centerOn\((\d+)\)/',$config['dataquery'],$centeron);
+					preg_match('/dissolveBy\((\d+)\,([a-z0-9_]+)\)/',$config['dataquery'],$dissolve);
+					
+					if (count($qid) > 0)
 					{
-						$dids[] = intval($qid[1]);	
+						if (!in_array(intval($qid[1]),$dids))
+						{
+							$dids[] = intval($qid[1]);	
+						}
 					}
-				}
-				if (count($intersect) > 0)
-				{
-					if (!in_array(intval($intersect[1]),$dids))
+					if (count($intersect) > 0)
 					{
-						$dids[] = intval($intersect[1]);	
+						if (!in_array(intval($intersect[1]),$dids))
+						{
+							$dids[] = intval($intersect[1]);	
+						}
+						if (!in_array(intval($intersect[2]),$dids))
+						{
+							$dids[] = intval($intersect[2]);	
+						}
 					}
-					if (!in_array(intval($intersect[2]),$dids))
+					if (count($centerof) > 0)
 					{
-						$dids[] = intval($intersect[2]);	
+						if (!in_array(intval($centerof[1]),$dids))
+						{
+							$dids[] = intval($centerof[1]);	
+						}
 					}
-				}
-				if (count($centerof) > 0)
-				{
-					if (!in_array(intval($centerof[1]),$dids))
+					if (count($centeron) > 0)
 					{
-						$dids[] = intval($centerof[1]);	
+						if (!in_array(intval($centeron[1]),$dids))
+						{
+							$dids[] = intval($centeron[1]);	
+						}
 					}
-				}
-				if (count($centeron) > 0)
-				{
-					if (!in_array(intval($centeron[1]),$dids))
+					if (count($dissolve) > 0)
 					{
-						$dids[] = intval($centeron[1]);	
-					}
-				}
-				if (count($dissolve) > 0)
-				{
-					if (!in_array(intval($dissolve[1]),$dids))
-					{
-						$dids[] = intval($dissolve[1]);	
+						if (!in_array(intval($dissolve[1]),$dids))
+						{
+							$dids[] = intval($dissolve[1]);	
+						}
 					}
 				}
 			}

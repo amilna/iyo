@@ -29,12 +29,11 @@ class MapSearch extends Map
         ];
     }
 
-	/* uncomment to undisplay deleted records (assumed the table has column isdel)
+	/* uncomment to undisplay deleted records (assumed the table has column isdel) */
 	public static function find()
 	{
 		return parent::find()->where([Map::tableName().'.isdel' => 0]);
-	}
-	*/
+	}	
 
     /**
      * @inheritdoc

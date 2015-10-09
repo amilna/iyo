@@ -55,9 +55,16 @@ $this->beginBlock('STATIC_SCRIPTS');
 				
 			if (isset($json['select']) && isset($json['from']))
 			{															
+				$fromt = explode(',',$json['from']);
+				$froms = [];
+				foreach ($fromt as $n=>$f)
+				{
+					$froms[] = is_numeric($f)?'{{%iyo_data_'.$f.'}} as t'.($n==0?'':$f):$f.' as t'.($n==0?'':$f);							
+				}
+								
 				$query = new Query;
 				$query->select($json['select'])						
-					->from(is_numeric($json['from'])?'{{%iyo_data_'.$json['from'].'}} as t':$json['from'].' as t');
+					->from($froms);
 				
 				if (isset($json['leftJoins']))
 				{

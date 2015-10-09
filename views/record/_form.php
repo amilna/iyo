@@ -135,7 +135,7 @@ if ($blogmodule->enableUpload)
 							}
 							elseif (substr($cl['type'],0,3) == 'int')
 							{
-								echo $form->field($model,$c)->numberInput(); 
+								echo $form->field($model,$c)->textInput(); 
 							}	
 							else
 							{

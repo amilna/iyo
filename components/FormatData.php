@@ -417,23 +417,30 @@ class FormatData extends Component
 			}
 			else
 			{
-				preg_match('/\.zip\.(.*)/',$this->filename,$matches);
+				preg_match('/\.(\d+)\.z(\d+)/',$this->filename,$matches);
 				if (count($matches) > 1)
 				{
 					$ziptype = 2;
 				}	
+				else
+				{
+					preg_match('/\.zip\.(.*)/',$this->filename,$matches);
+					if (count($matches) > 1)
+					{
+						$ziptype = 3;
+					}	
+				}
 			}												
 			
 			if ($ziptype == 0)
 			{
 				$basefile = str_replace(".zip","",$this->filename);
 				
-				$unzip = shell_exec("										
-					cat ".$basefile.".z* > ".$basefile."-all.zip &&					
-					unzip -o '".$basefile."-all.zip' -d '".$basefile."'				
+				$unzip = shell_exec("															
+					unzip -o '".$basefile.".zip' -d '".$basefile."'				
 				");					
 								
-			}
+			}			
 			else if ($ziptype == 1)
 			{
 				$basefile = preg_replace('/\.(\d+)\.zip/',"",$this->filename);
@@ -444,12 +451,20 @@ class FormatData extends Component
 			}	
 			else if ($ziptype == 2)
 			{
-				$basefile = preg_replace('/\.zip\.(.*)/',"",$this->filename);
+				$basefile = preg_replace('/\.(\d+)\.z(\d+)/',"",$this->filename);
 				$unzip = shell_exec("
 					cat ".$basefile.".* > ".$basefile."-all.zip &&
 					unzip -o '".$basefile."-all.zip' -d '".$basefile."'
 				");	
 			}							
+			else if ($ziptype == 3)
+			{
+				$basefile = preg_replace('/\.zip\.(.*)/',"",$this->filename);
+				$unzip = shell_exec("
+					cat ".$basefile.".* > ".$basefile."-all.zip &&
+					unzip -o '".$basefile."-all.zip' -d '".$basefile."'
+				");	
+			}
 			
 			$run = false;
 			$files = glob($basefile."/*");						
@@ -497,10 +512,12 @@ class FormatData extends Component
 				{
 					$this->ext = substr($f,-4);
 				}	
-				$this->$act();				
+				$this->$act();
+				/*				
 				$unlink = shell_exec("				
 					rm -R '".$basefile."';				
 				");
+				*/ 
 			}
 			else
 			{

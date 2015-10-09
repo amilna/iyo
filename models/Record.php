@@ -118,7 +118,7 @@ class Record extends \yii\db\ActiveRecord
 			}
 			else
 			{
-				$rules[] = [$columns,'date', 'format' => 'yyyy-M-d H:m:s'];
+				//$rules[] = [$columns,'date', 'format' => 'php:Y-M-d H:i:s'];
 			}
         }
 		
@@ -218,23 +218,32 @@ class Record extends \yii\db\ActiveRecord
 		$module = Yii::$app->getModule('iyo');
 		$geom_col = $module->geom_col;
 		
-		return $this->db->createCommand(
-			"SELECT ST_AsGeoJSON(ST_Transform(".$geom_col.",4326),4,0) as geojson FROM ".(static::tableName())." WHERE gid = :gid"
-		)->bindValues([":gid"=>$this->gid])->queryScalar();
+		return static::getGeomGeojson($this->$geom_col);
 		
 	}
 	
-	public static function asGeojson($data)
+	public static function getGeomGeojson($geom)
+    {		
+		return Yii::$app->db->createCommand(
+			"SELECT ST_AsGeoJSON(ST_Transform('".$geom."',4326),4,0) as geojson"
+		)->queryScalar();
+		
+	}
+	
+	public static function asGeojson($data,$isfeature = false)
     {
 		$module = Yii::$app->getModule('iyo');
 		$geom_col = $module->geom_col;		
 		
-		if (is_array($data))
+		if (is_array($data) && !$isfeature)
 		{
 			$features = [];
 			foreach ($data as $d)
-			{
-				$features[] = static::asGeojson($d);				
+			{								
+				if (is_array($d) || isset($d->attributes))
+				{
+					$features[] = static::asGeojson($d,true);				
+				}
 			}	
 			
 			return [
@@ -249,14 +258,26 @@ class Record extends \yii\db\ActiveRecord
 				];
 		}
 		else
-		{
-			$properties = $data->attributes;
-			unset($properties[$geom_col]);
+		{						
+			
+			if (isset($data->attributes))
+			{
+				$properties = $data->attributes;
+				$geom = $data->geojson;
+				unset($properties[$geom_col]);
+				
+			}
+			else
+			{
+				$properties = $data;				
+				$geom = static::getGeomGeojson($data[$geom_col]);
+				unset($properties[$geom_col]);
+			}
 			
 			return [
 						"type"=> "Feature",
 						"properties"=> $properties,
-						"geometry"=> json_decode($data->geojson)
+						"geometry"=> json_decode($geom)
 					];		
 		}			
 		

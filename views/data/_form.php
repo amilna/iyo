@@ -31,9 +31,9 @@ $kcfOptions = array_merge([], [
             'rename' => true,
         ],
         'dirs' => [
-            'create' => false,
-            'delete' => false,
-            'rename' => false,
+            'create' => true,
+            'delete' => true,
+            'rename' => true,
         ],
     ],  
     'types'=>[

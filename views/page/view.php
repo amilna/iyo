@@ -54,12 +54,12 @@ $this->beginBlock('STATIC_SCRIPTS');
 			$json = json_decode($querystr,true);											
 				
 			if (isset($json['select']) && isset($json['from']))
-			{															
-				$fromt = explode(',',$json['from']);
+			{																			
+				$fromt = is_array($json['from'])?$json['from']:explode(',',$json['from']);
 				$froms = [];
 				foreach ($fromt as $n=>$f)
 				{
-					$froms[] = is_numeric($f)?'{{%iyo_data_'.$f.'}} as t'.($n==0?'':$f):$f.' as t'.($n==0?'':$f);							
+					$froms[] = is_numeric($f)?'{{%iyo_data_'.$f.'}} as t'.($n==0?'':$n):$f.' as t'.($n==0?'':$n);							
 				}
 								
 				$query = new Query;

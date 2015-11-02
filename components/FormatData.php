@@ -735,9 +735,9 @@ class FormatData extends Component
 		foreach ($files as $file)
 		{				
 			$gdalinfo = shell_exec("gdalinfo '".$file."'");
-			
-			preg_match('/Lower Left([ ]+)\(([ ]+)([0-9\.]+),([ ]+)([0-9\.]+)\)/', $gdalinfo, $min);		
-			preg_match('/Upper Right([ ]+)\(([ ]+)([0-9\.]+),([ ]+)([0-9\.]+)\)/', $gdalinfo, $max);
+						
+			preg_match('/Lower Left([ ]+)\(([ ]+)?(-?[0-9\.]+),([ ]+)?(-?[0-9\.]+)\)/', $gdalinfo, $min);		
+			preg_match('/Upper Right([ ]+)\(([ ]+)?(-?[0-9\.]+),([ ]+)?(-?[0-9\.]+)\)/', $gdalinfo, $max);
 			preg_match('/\n    AUTHORITY\[\"EPSG\",\"(\d+)\"\]/', $gdalinfo, $epsg);																
 					
 			$sql = 'INSERT INTO indeks   

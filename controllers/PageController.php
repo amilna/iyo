@@ -21,7 +21,7 @@ class PageController extends \amilna\blog\controllers\PageController
         $dataProvider = $searchModel->search($req);	
         
         $query = $dataProvider->query;
-		$query->andWhere(['status'=>[3,4,5]]);
+		$query->andWhere(['status'=>[3,4,5,6]]);
 
         if ($format == 'json')
         {
@@ -70,6 +70,33 @@ class PageController extends \amilna\blog\controllers\PageController
 			]);
 		}	
     }
+ 
+ 
+    public function actionView($id = false,$format= false)
+    {
+        
+        $model = false;
+        if ($id == false)
+        {
+			$model = StaticPage::find()->orderBy('status DESC')->one();
+		}
+        
+        if (!$model)
+        {
+			$model = $this->findModel($id);
+		}
+        
+        if ($format == 'json')
+        {
+			return \yii\helpers\Json::encode($model);	
+		}
+		else
+		{
+			return $this->render('view', [
+				'model' => $model,
+			]);
+		}        
+    }   
     
     public function actionCreate()
     {
@@ -146,12 +173,12 @@ class PageController extends \amilna\blog\controllers\PageController
 					
 					$json = json_decode($querystr,true);			
 					if (isset($json['select']) && isset($json['from']))
-					{															
-						$fromt = explode(',',$json['from']);
+					{																					
+						$fromt = is_array($json['from'])?$json['from']:explode(',',$json['from']);
 						$froms = [];
 						foreach ($fromt as $n=>$f)
 						{
-							$froms[] = is_numeric($f)?'{{%iyo_data_'.$f.'}} as t'.($n==0?'':$f):$f.' as t'.($n==0?'':$f);							
+							$froms[] = is_numeric($f)?'{{%iyo_data_'.$f.'}} as t'.($n==0?'':$n):$f.' as t'.($n==0?'':$n);							
 						}
 						
 						$query = new Query;

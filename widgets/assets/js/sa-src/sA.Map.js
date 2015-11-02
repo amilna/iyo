@@ -393,7 +393,24 @@ sA.Map.prototype.addLayer = function(lconf) {
 			style : function(feature, resolution) {
 												
 						var styles = [];
-						var resStyle = sai.mkResStyle(feature, sai.map.getView().getResolution());
+												
+						if (sai.isObj(lconf.mkres))
+						{							
+							if (lconf.mkres > 1)
+							{
+								var resStyle = sai.mkResStyle(feature, sai.map.getView().getResolution(),sai,lconf.mkres);		
+							}
+							else
+							{
+								var resStyle = (lconf.mkres?sai.mkResStyle(feature, sai.map.getView().getResolution()):false);		
+							}
+						}
+						else
+						{
+							var resStyle = sai.mkResStyle(feature, sai.map.getView().getResolution());	
+						}
+												
+						
 						var dStyle = sai.mkStyle(feature,olayer);
 						if (resStyle)
 						{
@@ -468,13 +485,22 @@ sA.Map.prototype.addLayer = function(lconf) {
 	}
 };
 
-sA.Map.prototype.mkResStyle = function(feature, resolution, sai) {	
+sA.Map.prototype.mkResStyle = function(feature, resolution, sai, fixres) {	
 	var sai = (typeof sai == "undefined"?this:sai);
+	var fixres = (typeof fixres == "undefined"?false:fixres);
 	var oSbg = false;
 	
-	if (sai.isObj(feature.get('resolution')))
+	if (sai.isObj(feature.get('resolution')) || fixres)
 	{											
-		var radius = Math.ceil(feature.get('resolution')/resolution)*(Math.max(1,sai.map.getView().getZoom()-feature.get('zoom')))*4;		
+		if (fixres > 1)
+		{
+			var radius = Math.ceil(fixres/sai.map.getView().getResolution());
+			//console.log(radius,fixres,sai.map.getView().getResolution());
+		}
+		else
+		{
+			var radius = Math.ceil(feature.get('resolution')/resolution)*(Math.max(1,sai.map.getView().getZoom()-feature.get('zoom')))*4;		
+		}
 		
 		oSbg = new ol.style.Style({			
 			image : new ol.style.Circle({
@@ -555,32 +581,35 @@ sA.Map.prototype.mapSetLayers = function(layersname) {
 	var sai = this;
 	sai.map.getLayers().forEach(function (lyr) {													
 		if (sai.isObj(lyr.get('name')))
-		{
+		{						
 			if (lyr.get('isbase') !== true)
-			{
-				lyr.setVisible(false);
-				var layid = "layer_"+lyr.get('name').toLowerCase().replace(/[^a-zA-Z0-9]/g,"_");
-				$("#" + layid +" .iyo-layer-legend").addClass("iyo-box-unshow");
-				$("#" + layid +" .iyo-layer-legend").addClass("noprint");
-				$("#" + layid +" .iyo-layer-classes").addClass("hidden");
-				$("#" + layid +" .iyo-layer-tools-visibility").removeClass("iyo-box-show");
+			{				
+				var dname = lyr.get('name').split('~');										
+				var layid = "layer_"+dname[0].toLowerCase().replace(/[^a-zA-Z0-9]/g,"_");												
+						
+				if (sai.inArray(dname[0],layersname) >= 0) {							
+					lyr.setVisible(true);				
+					$("#" + layid +" .iyo-layer-legend").removeClass("iyo-box-unshow");
+					$("#" + layid +" .iyo-layer-legend").removeClass("noprint");
+					$("#" + layid +" .iyo-layer-classes").removeClass("hidden");
+					$("#" + layid +" .iyo-layer-tools-visibility").addClass("iyo-box-show");					
+					
+					if (sai.isObj(lyr.utfGrid))
+					{
+						var evt = {map:sai.map};
+						lyr.utfGrid.fetch(evt);
+					}
+				}
+				else
+				{
+					lyr.setVisible(false);
+					$("#" + layid +" .iyo-layer-legend").addClass("iyo-box-unshow");
+					$("#" + layid +" .iyo-layer-legend").addClass("noprint");
+					$("#" + layid +" .iyo-layer-classes").addClass("hidden");
+					$("#" + layid +" .iyo-layer-tools-visibility").removeClass("iyo-box-show");					
+				}
 			}
-			
-		}
-		if (sai.inArray(lyr.get('name'),layersname) >= 0) {							
-			lyr.setVisible(true);
-			var layid = "layer_"+lyr.get('name').toLowerCase().replace(/[^a-zA-Z0-9]/g,"_");
-			$("#" + layid +" .iyo-layer-legend").removeClass("iyo-box-unshow");
-			$("#" + layid +" .iyo-layer-legend").removeClass("noprint");
-			$("#" + layid +" .iyo-layer-classes").removeClass("hidden");
-			$("#" + layid +" .iyo-layer-tools-visibility").addClass("iyo-box-show");
-			
-			if (sai.isObj(lyr.utfGrid))
-			{
-				var evt = {map:sai.map};
-				lyr.utfGrid.fetch(evt);
-			}
-		} 						
+		}						
 	});	
 	
 };
@@ -683,11 +712,12 @@ sA.Map.prototype.initUiLegend = function(layer) {
 						{
 							var newImg = new Image();					
 							newImg.onload = function(){
-								var h = this.height*scale;	
-								var w = this.width*scale;																			
+								var h = this.height*this.scale;	
+								var w = this.width*this.scale;																			
 								var img = '<img src="'+this.src+'" height='+h+' width='+w+' style="'+(this.opacity?'opacity:'+this.opacity+';':'')+'margin:auto;display:block;"/>';																		
 								$("#" + this.id+ " .iyo-layer-class-symbol").html(img);
 							};
+							newImg.scale = scale;
 							newImg.src = src;
 							newImg.opacity = opacity;													
 							newImg.id = layid+"_class_"+rc;						
@@ -743,11 +773,12 @@ sA.Map.prototype.initUiLayer = function(layer) {
 	if (!this.editable)
 	{
 		$("#" + layid +" .iyo-layer-tools-more").html('');
-		$("#" + layid +" .iyo-layer-tools-more").css('display','none');
+		$("#" + layid +" .iyo-layer-tools-more").css('display','none');		
 	}
 	
+	var defw = $("#" + layid +" .iyo-layer-name").css("fontWeight");
 	$("#" + layid +" .iyo-layer-legend").bind("click",function(e){		
-				
+						
 		if ($("#" + layid +" .iyo-layer-tools-seemore").css("display") == "none")
 		{
 			$("#" + layid +" .iyo-layer-tools-seemore").css("display","block");
@@ -758,7 +789,7 @@ sA.Map.prototype.initUiLayer = function(layer) {
 		{
 			$("#" + layid +" .iyo-layer-tools-seemore").css("display","none");
 			$("#" + layid +" .iyo-layer-tools-visibility").css("display","none");
-			$("#" + layid +" .iyo-layer-name").css("fontWeight","normal");
+			$("#" + layid +" .iyo-layer-name").css("fontWeight",defw);			
 		}
 		
 		e.stopPropagation();
@@ -773,7 +804,7 @@ sA.Map.prototype.initUiLayer = function(layer) {
 	$("#" + layid ).bind("mouseout",function(e){
 		$("#" + layid +" .iyo-layer-tools-seemore").css("display","none");
 		$("#" + layid +" .iyo-layer-tools-visibility").css("display","none");
-		$("#" + layid +" .iyo-layer-name").css("fontWeight","normal");
+		$("#" + layid +" .iyo-layer-name").css("fontWeight",defw);
 	});	
 	
 	$("#" + layid +" .iyo-layer-tools-seemore").bind("click",function(e){		
@@ -2009,7 +2040,24 @@ sA.Map.prototype.unHighlightFeature = function(featureHighlight,isforced) {
 		var dstyle = function(resolution) {						
 						
 						var styles = [];
-						var resStyle = sai.mkResStyle(this, resolution,sai);
+						
+						var lconf = featureHighlight[1].conf;
+						if (sai.isObj(lconf.mkres))
+						{																											
+							if (lconf.mkres > 1)
+							{
+								var resStyle = sai.mkResStyle(this, resolution,sai,lconf.mkres);		
+							}
+							else
+							{
+								var resStyle = (lconf.mkres?sai.mkResStyle(this, resolution,sai):false);
+							}
+						}
+						else
+						{
+							var resStyle = sai.mkResStyle(this, resolution,sai);
+						}
+						
 						var dStyle = sai.mkStyle(this,featureHighlight[1],undefined,sai);
 						if (resStyle)
 						{
@@ -2137,7 +2185,25 @@ sA.Map.prototype.highlightFeature = function(feature,layer) {
 	var dstyle = function(resolution) {						
 					
 					var styles = [];
-					var resStyle = sai.mkResStyle(this, resolution,sai);
+					
+					var lconf = layer.conf;
+					if (sai.isObj(lconf.mkres))
+					{																			
+						if (lconf.mkres > 1)
+						{
+							var resStyle = sai.mkResStyle(this, resolution,sai,lconf.mkres);		
+						}
+						else
+						{
+							var resStyle = (lconf.mkres?sai.mkResStyle(this, resolution,sai):false);
+						}
+					}
+					else
+					{
+						var resStyle = sai.mkResStyle(this, resolution,sai);
+					}
+					
+					
 					var dStyle = sai.mkStyle(this,layer,true,sai);
 					if (resStyle)
 					{
@@ -2353,7 +2419,20 @@ sA.Map.prototype.mapOnMouseMove = function(evt) {
 						var field = mkutf[f];
 						if (sai.isObj(ugdata[1][field.name]))
 						{
-							var otext = "<strong>" + field.alias + "</strong> " + ugdata[1][field.name];
+							var str = ugdata[1][field.name];
+							if (sai.isObj(field.reformat))
+							{																				
+								if (sai.isObj(field.reformat[str]))
+								{
+									str = field.reformat[str];
+								}	
+								else
+								{
+									str = sai.reformat(str,field.reformat[0],field.reformat[1]);										
+								}	
+							}
+							
+							var otext = "<strong>" + field.alias + "</strong> " + str;
 							//console.log(textf,textd,otext);
 							if (textf.indexOf(otext) < 0 && textd.indexOf(otext) < 0)
 							{
@@ -2594,26 +2673,7 @@ sA.Map.prototype.mapOnMouseClick = function(evt) {
 						sai.sublayers.push(conf.sublayers);												
 						
 						return true;
-					}
-					
-					var reformat = function(str,from,to) {
-							var mf = from.match(/function/);
-							var mx = from.match(/([A-Za-z0-9]+)\((.*)\)/);							
-							if (mf == null && mx == null)
-							{							
-								var m = str.match(eval(from));
-								if (m!=null)
-								{
-									var nstr = to;
-									for (var mi=0;mi<m.length;mi++)
-									{
-										nstr = nstr.replace(eval("/\\$"+mi+"/g"),m[mi]);									
-									}		
-									str = nstr;	
-								}					
-							}
-							return str;
-						};
+					}										
 					
 					var mkutf = [];
 					var mkutfname = [];
@@ -2641,12 +2701,19 @@ sA.Map.prototype.mapOnMouseClick = function(evt) {
 							if (sai.isObj(ugdata[1][field.name]))
 							{
 								if (ugdata[1][field.name] != null)
-								{									
-									var str = ugdata[1][field.name]+"";
+								{																											
+									var str = ugdata[1][field.name];
 									if (sai.isObj(field.reformat))
 									{																				
-										str = reformat(str,field.reformat[0],field.reformat[1]);										
-									}
+										if (sai.isObj(field.reformat[str]))
+										{
+											str = field.reformat[str];
+										}	
+										else
+										{
+											str = sai.reformat(str,field.reformat[0],field.reformat[1]);										
+										}	
+									}																		
 									
 									if (sai.isObj(field.type))
 									{																				
@@ -2655,7 +2722,7 @@ sA.Map.prototype.mapOnMouseClick = function(evt) {
 											var url = str;
 											if (sai.isObj(field.type[1].reformat))
 											{
-												url = reformat(str,field.type[1].reformat[0],field.type[1].reformat[1]);
+												url = sai.reformat(str,field.type[1].reformat[0],field.type[1].reformat[1]);
 											}
 											str = '<a href="'+url+'" target="blank">' + str + '</a>';
 											var otext = "<strong>" + field.alias + "</strong> " + str;										
@@ -2760,7 +2827,24 @@ sA.Map.prototype.mapOnMouseClick = function(evt) {
 	
 };	
 
-
+sA.Map.prototype.reformat = function(str,from,to) {
+	var mf = from.match(/function/);
+	var mx = from.match(/([A-Za-z0-9]+)\((.*)\)/);							
+	if (mf == null && mx == null)
+	{							
+		var m = str.match(eval(from));
+		if (m!=null)
+		{
+			var nstr = to;
+			for (var mi=0;mi<m.length;mi++)
+			{
+				nstr = nstr.replace(eval("/\\$"+mi+"/g"),m[mi]);									
+			}		
+			str = nstr;	
+		}					
+	}
+	return str;
+};
 
 sA.Map.prototype.initUi = function() {
 	
@@ -2776,10 +2860,18 @@ sA.Map.prototype.initUi = function() {
 	this.mkUiSearch();	
 	this.mkUiHome();
 	this.mkUiBase();
-	this.mkUiPrint();
-	this.mkUiEditAttributes();
+	this.mkUiPrint();	
 	this.mkUiNavInset();
 	this.mkUiAddPointCoordinates();
+	
+	if (!this.editable)
+	{		
+		$("#" + this.id +" .iyo-edit-attributes").remove();		
+	}
+	else
+	{
+		this.mkUiEditAttributes();
+	}
 };
 
 sA.Map.prototype.mkUiNav = function() {
@@ -3249,10 +3341,10 @@ sA.Map.prototype.formatLength = function(lines,isGeodesic) {
 	}
 	var output;
 	if (length > 100) {
-		output = (Math.round(length / 1000 * 100) / 100) +
+		output = this.toMoney((length / 1000).toFixed(2)) +
 		' ' + 'km';
 	} else {
-		output = (Math.round(length * 100) / 100) +
+		output = this.toMoney((length).toFixed(2)) +
 		' ' + 'm';
 	}
 	return output;
@@ -3273,12 +3365,15 @@ sA.Map.prototype.formatArea = function(polygon,isGeodesic) {
 	}
 	var output;
 	if (area > 10000) {
-		output = (Math.round(area / 1000000 * 100) / 100) +
-		' ' + 'km<sup>2</sup>';
+		output = this.toMoney((area / 1000000).toFixed(2)) +
+		' ' + 'km<sup>2</sup>';	
 	} else {
-		output = (Math.round(area * 100) / 100) +
+		output = this.toMoney((area).toFixed(2)) +
 		' ' + 'm<sup>2</sup>';
 	}
+	
+	output += ' (' + this.toMoney((area / 1000000 * 100).toFixed(2)) + ' ha)';	
+	
 	return output;
 };
 

@@ -27,6 +27,7 @@ class StaticPage extends \amilna\blog\models\StaticPage
 						3=>Yii::t('app','Draft'),							
 						4=>Yii::t('app','Published'),
 						5=>Yii::t('app','Archived'),
+						6=>Yii::t('app','Featured'),
 					],			
 			
 		];				

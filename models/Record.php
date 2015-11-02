@@ -225,7 +225,7 @@ class Record extends \yii\db\ActiveRecord
 	public static function getGeomGeojson($geom)
     {		
 		return Yii::$app->db->createCommand(
-			"SELECT ST_AsGeoJSON(ST_Transform('".$geom."',4326),4,0) as geojson"
+			"SELECT ST_AsGeoJSON(ST_Transform(cast('".$geom."' as geometry),4326),4,0) as geojson"
 		)->queryScalar();
 		
 	}

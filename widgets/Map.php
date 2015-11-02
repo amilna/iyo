@@ -210,6 +210,11 @@ class Map extends Widget
 							$this->options['layers'][$i]['type'] = $ltype;
 							$this->options['layers'][$i]['geomtype'] = $gtype;
 							
+							if (isset($lconfigs[0]['mkres']))
+							{							
+								$this->options['layers'][$i]['mkres'] = $lconfigs[0]['mkres'];							
+							}
+							
 							if (isset($lconfigs[0]['dataquery']))
 							{							
 								$this->options['layers'][$i]['dataquery'] = $lconfigs[0]['dataquery'];							

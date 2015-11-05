@@ -97,9 +97,9 @@ class DataController extends Controller
      */
     public function actionView($id,$format= false)
     {
-        $model = $this->findModel($id);
+        $model = $this->findModel($id);                
         
-        if (in_array($model->status,[1,3]))
+        if (in_array($model->status,[1,3]) && $model->type < 6)
         {
 			return $this->redirect(['//iyo/record/index','data'=>$id]);
 		}

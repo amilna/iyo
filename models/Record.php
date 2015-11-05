@@ -13,11 +13,10 @@ class Record extends \yii\db\ActiveRecord
     public static $dataId = false;
     
     public function __construct($id = false, array $config = [])
-    {
-        	
+    {        	
 		if (is_numeric($id))
-		{				
-			$data = Data::findOne($id);
+		{							
+			$data = Data::find()->where('id=:id AND type < 6 ',[':id'=>$id])->one();			
 			if ($data)
 			{
 				static::$dataId = $id;					
@@ -29,12 +28,15 @@ class Record extends \yii\db\ActiveRecord
     
     public static function tableName()
     {
+        					        
         if (static::$dataId) {
 			return '{{%'.str_replace(["{{%","}}"],"",Data::tableName())."_".static::$dataId.'}}';
 		}	
-		else
-		{
-			return Yii::$app->controller->redirect(['//iyo/data/index']);			
+		else		
+		{			
+			$url = \yii\helpers\Url::toRoute(['//iyo/data/index']);
+			header( "Location: $url" );						
+			die();			
 		}	        
     }        
     

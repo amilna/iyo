@@ -22,6 +22,7 @@ class FormatData extends Component
 	private $uploadDir = null;
 	private $tileDir = null;
 	private $geom_col = null;
+	private $postgis = 1.5;
 	
 	private $ogrexts = [".kml",".geojson",".gpx"];
 	private $imgexts = [".tif"];
@@ -35,6 +36,11 @@ class FormatData extends Component
 		$geom_col = $params[2];
 		$dataid = $params[3];		
 		$userid = $params[4];						
+		
+		if (isset($params[5]))
+		{
+			$this->postgis = floatval($params[5]);
+		}
 		
 		preg_match('/dbname\=(.*)?/', $dsn, $matches);			
 		$this->dbname = $matches[1];
@@ -188,7 +194,7 @@ class FormatData extends Component
 			if ($ncolumn != 1)
 			{						
 				$column["type"] = str_replace("double precision","float",$column["type"]);
-				$sql = "ALTER TABLE ".$table." ADD COLUMN ".$column["name"]." ".$column["type"]." ".$column["options"];
+				$sql = "ALTER TABLE ".$table." ADD COLUMN ".'"'.$column["name"].'"'." ".$column["type"]." ".$column["options"];
 				
 				return !is_array($this->db->createCommand($sql)->execute());							
 				
@@ -611,17 +617,22 @@ class FormatData extends Component
 				}					
 			}
 			
-			/* if use postgis 2 */			
-			//$shp2pgsql = shell_exec("shp2pgsql -t 2D ".($append?"-a":"-d")." -s ".$srid." -g ".$geom_col." -W latin1 '".$file."' public.".$table." > ".$filesql);																					
-			/* end */
-			
-			/* if use postgis 1.5 */
-			$shp2pgsql = shell_exec("shp2pgsql ".($append?"-a":"-d")." -s ".$srid." -g ".$geom_col." -W latin1 '".$file."' public.".$table." > ".$filesql);																								
-			$str=file_get_contents($filesql);
-			$str=preg_replace('/ AddGeometryColumn\((.*),(\d+)\);/', ' AddGeometryColumn($1,2);',$str);
-			$str=preg_replace('/\'([A-Z0-9]+)\'\);/', 'ST_Force_2D(CAST(\'$1\' as text)));',$str);
-			file_put_contents($filesql, $str);
-			/* end */
+			if ($this->postgis >= 2)
+			{
+				/* if use postgis 2 */									
+				$shp2pgsql = shell_exec("shp2pgsql -t 2D ".($append?"-a":"-d")." -s ".$srid." -g ".$geom_col." -W latin1 '".$file."' public.".$table." > ".$filesql);																					
+				/* end */
+			}
+			else
+			{
+				/* if use postgis 1.5 */
+				$shp2pgsql = shell_exec("shp2pgsql ".($append?"-a":"-d")." -s ".$srid." -g ".$geom_col." -W latin1 '".$file."' public.".$table." > ".$filesql);																								
+				$str=file_get_contents($filesql);
+				$str=preg_replace('/ AddGeometryColumn\((.*),(\d+)\);/', ' AddGeometryColumn($1,2);',$str);
+				$str=preg_replace('/\'([A-Z0-9]+)\'\);/', 'ST_Force_2D(CAST(\'$1\' as text)));',$str);
+				file_put_contents($filesql, $str);
+				/* end */
+			}
 			
 			
 			if (!$append)

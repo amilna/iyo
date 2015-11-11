@@ -119,22 +119,22 @@ class Tilep:
 		lon = x / n * 360.0 - 180.0
 		lat_rad = math.atan(math.sinh(math.pi * (1 - 2 * y / n)))
 		lat = math.degrees(lat_rad)
-		return (lon, lat)
+		return [lon, lat]
 	def getTile(self, lon, lat, z):
 		lat_rad = math.radians(lat)
 		n = 2.0 ** z
 		x = int((lon + 180.0) / 360.0 * n)
 		y = int((1.0 - math.log(math.tan(lat_rad) + (1 / math.cos(lat_rad))) / math.pi) / 2.0 * n)
-		return (x, y)
+		return [x, y]
 	def getBbox(self, x, y, z):		
 		s = self.getLonLat(x, y, z);
 		e = self.getLonLat(x+1, y+1, z);										
 		if (s[0] > 360):
 			s[0] = (s[0]%360)+(s[0]-math.floor(s[0]))
 			e[0] = (e[0]%360)+(e[0]-math.floor(e[0]))		
-		if (s[0] >= 180):
+		if (s[0] > 180):
 			s[0] = s[0]-360			
-		if (e[0] >= 180):
+		if (e[0] > 180):
 			e[0] = e[0]-360		
 		return (s[0],e[1],e[0],s[1])
 	def getDb(self, dbname, isxml=False):

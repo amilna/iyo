@@ -214,7 +214,7 @@ ol.utfGrid.prototype.fetch = function(evt,forceRefresh)
 						{
 							ug.data[zoom][x] = [];
 						}			
-						for(var y = g0[1];y>=g1[1];y--)
+						for(var y = g0[1];y>=Math.max(0,g1[1]);y--)
 						{											
 							if (!ug.isObj(ug.data[zoom][x][y]) || ug.isObj(forceRefresh))
 							{															
@@ -237,7 +237,7 @@ ol.utfGrid.prototype.fetch = function(evt,forceRefresh)
 						{
 							ug.data[zoom][x] = [];
 						}			
-						for(var y = Math.max(0,g2[1]);y>=g3[1];y--)
+						for(var y = Math.max(0,g2[1]);y>=Math.max(0,g3[1]);y--)
 						{											
 							if (!ug.isObj(ug.data[zoom][x][y]) || ug.isObj(forceRefresh))
 							{															

@@ -156,16 +156,15 @@ class Map extends \yii\db\ActiveRecord
 			}	
 		}
 		return $tags;
-	}
-	
+	}	
 	
 	public function beforeSave($insert)
-	{
+	{		
 		if (parent::beforeSave($insert)) {
-			$this->config = str_replace('&amp;','&',$this->config);			
+			$this->config = str_replace(['&amp;','&lt;','&gt;'],['&','<','>'],$this->config);						
 			return true;
 		} else {
 			return false;
 		}
-	}   
+	}     
 }

@@ -11,6 +11,7 @@ class Module extends \yii\base\Module
 	public $uploadDir = '@webroot/upload';
 	public $uploadURL = '@web/upload';
 	public $geom_col = 'the_geom';	
+	public $postgis = 1.5;	
 	
 	public $ipaddress = '127.0.0.1';
 	public $ports = [1401,1402];

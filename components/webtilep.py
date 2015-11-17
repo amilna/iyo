@@ -4,6 +4,7 @@ import xml.etree.ElementTree as ET
 import sys, getopt, os, json, mapnik, tempfile, urllib2, cPickle, shutil, zlib
 import math
 import sqlite3 as lite
+import re
 
 from subprocess import Popen, PIPE
 from xml.dom import minidom
@@ -31,7 +32,7 @@ geomCol = "the_geom"
 sslCert = False
 sslKey = False
 execFile = "@amilna/yii2-iyo/components/exec"
-web.config.debug = False
+#web.config.debug = False
 
 def main(argv):		
 	global ip
@@ -137,14 +138,43 @@ class Tilep:
 		if (e[0] > 180):
 			e[0] = e[0]-360		
 		return (s[0],e[1],e[0],s[1])
+	def getQuery(self, qray):			
+		if isinstance(qray, list) :
+			if isinstance(qray[0], list) :
+				dvar = self.getQuery(qray[0])
+			else :					
+				rvar = re.compile(r"(insert|update|delete)", re.IGNORECASE)
+				dvar = rvar.sub("", str(qray[0]))				
+				dvar = re.match(r"([a-zA-Z0-9_]+)", dvar)			
+							
+			dop = re.match(r"^(and|or|AND|OR|!=|=|<|>|<=|>=)$",str(qray[1]))						
+			
+			if isinstance(qray[2], list) :
+				dparam = self.getQuery(qray[2])
+			else :					
+				rparam = re.compile(r"(insert|update|delete)", re.IGNORECASE)
+				dparam = rparam.sub("", str(qray[2]))
+				dparam = re.match(r"([a-zA-Z0-9_\ \%\']+)", dparam)						
+			
+			if dvar != None and dop != None and dparam != None :
+				if not isinstance(dvar, str) :
+					dvar = dvar.group(1)
+				if not isinstance(dparam, str) :
+					dparam = dparam.group(1)	
+					
+				qray = "("+dvar+" "+dop.group(1)+" "+dparam+")"
+			else :
+				qray = "1"
+					
+		return qray
 	def getDb(self, dbname, isxml=False):
 		adir = os.path.dirname(os.path.realpath(__file__));	
 		if not isxml:
 			sub = '/dbs'
-			csql = 'CREATE TABLE IF NOT EXISTS tiles (z INT NOT NULL, x INT NOT NULL, y INT NOT NULL, minx REAL NOT NULL, miny REAL NOT NULL, maxx REAL NOT NULL, maxy REAL NOT NULL, src BLOB NOT NULL , sffx TEXT NOT NULL )'
+			csql = 'CREATE TABLE IF NOT EXISTS tiles (z INT NOT NULL, x INT NOT NULL, y INT NOT NULL, minx REAL NOT NULL, miny REAL NOT NULL, maxx REAL NOT NULL, maxy REAL NOT NULL, src BLOB NOT NULL , sffx TEXT NOT NULL, q TEXT )'
 		else:
 			sub = ''
-			csql = 'CREATE TABLE IF NOT EXISTS xmls (tilename TEXT NOT NULL, src BLOB NOT NULL )'								
+			csql = 'CREATE TABLE IF NOT EXISTS xmls (tilename TEXT NOT NULL, src BLOB NOT NULL, q TEXT )'								
 			
 		if not os.path.exists(adir+sub):
 			try:				
@@ -164,7 +194,7 @@ class Tilep:
 				dst = False			
 		
 		return dst
-	def getXml(self, tilename, isforce = False, isimage = False):
+	def getXml(self, tilename, isforce = False, q = ''):
 		
 		xmlstr = False		
 		isfromdir = (tilename[:3] != 'iyo')
@@ -207,19 +237,31 @@ class Tilep:
 					if xoutput[:5] == '<Map ':
 						xmlstr = xoutput
 						
-					if xmlstr:									
+					if xmlstr:
+						
+						if q != '':
+							#xmlstr = re.sub(r"FROM sxz51_iyo_data_1",r"FROM sxz51_iyo_data_1 WHERE tes = 2",xmlstr)							
+							qray = json.loads(q)
+							if isinstance(qray, list):
+								qc = str(self.getQuery(qray))
+								
+								if qc != "" :								
+									xmlstr = re.sub(r"FROM ([a-zA-Z0-9\_]+)([a-zA-Z0-9\_\=\(\) ]+)?",r"FROM \1 WHERE "+qc+r" AND\2", xmlstr)							
+									xmlstr = re.sub(r"AND(\)| ?GROUP)",r"\1", xmlstr)
+									xmlstr = re.sub(r"AND( WHERE)",r"AND", xmlstr)
+															
 						sql = "DELETE from xmls WHERE tilename = ?;"
-						cur.execute(sql,[tilename])
-						sql = "INSERT INTO xmls VALUES (?,?);"			
-						cur.execute(sql,[tilename,lite.Binary(zlib.compress(xmlstr))])
-						con.commit()
+						#cur.execute(sql,[tilename])
+						sql = "INSERT INTO xmls VALUES (?,?,?);"			
+						#cur.execute(sql,[tilename,lite.Binary(zlib.compress(xmlstr)),q])
+						#con.commit()
 						cur.close()
 				
 		return xmlstr	
 
 class clear_tile:
 	def GET(self, tilename):				
-		qs = web.input(r='',x='')								
+		qs = web.input(r='',x='',q='')								
 		
 		tilep = Tilep()
 				
@@ -234,11 +276,12 @@ class clear_tile:
 		if qs.x == '':
 			isforce = False
 			
-		xmlstr = tilep.getXml(tilename,isforce)		
+		xmlstr = tilep.getXml(tilename,isforce,qs.q)		
 		
 		web.header("Access-Control-Allow-Origin", "*")
 		web.header("Content-Type", "text/plain")
-		if xmlstr:			
+		if xmlstr:
+			return xmlstr			
 			return '{"tilename":"'+tilename+'","status":true}'			
 		else :
 			return '{"tilename":"'+tilename+'","status":false}'	
@@ -259,7 +302,7 @@ class get_tile:
             "json":"text/plain"
 		}
 				
-		qs = web.input(r='',x='')
+		qs = web.input(r='',x='',q='')
 		isCache = False
 		if qs.r == '':
 			isCache = True								
@@ -270,13 +313,16 @@ class get_tile:
 		web.header("Access-Control-Allow-Origin", "*")
 		
 		dbfilet = tilep.getDb(tilename)
+			
 		if dbfilet:
 			cont = lite.connect(dbfilet)
 			curt = cont.cursor()
 		
 		if isCache and dbfilet:
-			sql = "SELECT * from tiles WHERE z = ? AND x = ? AND y = ? AND sffx = ?;"				
-			curt.execute(sql,[z,x,y,sffx])		
+			
+			sql = "SELECT * from tiles WHERE z = ? AND x = ? AND y = ? AND sffx = ? AND q = ?;"				
+			curt.execute(sql,[z,x,y,sffx,qs.q])
+					
 			rows = curt.fetchall()								
 			for row in rows:						
 				output = zlib.decompress(row[7])					
@@ -289,8 +335,8 @@ class get_tile:
 			isforce = True
 			if qs.x == '':
 				isforce = False
-					
-			xmlstr = tilep.getXml(tilename,isforce)
+						
+			xmlstr = tilep.getXml(tilename,isforce,qs.q)
 				
 			if not xmlstr:				
 				return ''
@@ -318,8 +364,10 @@ class get_tile:
 						miny = box[1]
 						maxx = box[2]
 						maxy = box[3]
-						sql = "INSERT INTO tiles VALUES (?,?,?,?,?,?,?,?,?);"			
-						curt.execute(sql,[z,x,y,minx,miny,maxx,maxy,lite.Binary(zlib.compress(output)),sffx])
+						
+						sql = "INSERT INTO tiles VALUES (?,?,?,?,?,?,?,?,?,?);"			
+						curt.execute(sql,[z,x,y,minx,miny,maxx,maxy,lite.Binary(zlib.compress(output)),sffx,qs.q])						
+							
 						cont.commit()
 						curt.close()
 											
@@ -380,8 +428,10 @@ class get_tile:
 							miny = box[1]
 							maxx = box[2]
 							maxy = box[3]
-							sql = "INSERT INTO tiles VALUES (?,?,?,?,?,?,?,?,?);"			
-							curt.execute(sql,[z,x,y,minx,miny,maxx,maxy,lite.Binary(zlib.compress(output)),sffx])
+							
+							sql = "INSERT INTO tiles VALUES (?,?,?,?,?,?,?,?,?,?);"			
+							curt.execute(sql,[z,x,y,minx,miny,maxx,maxy,lite.Binary(zlib.compress(output)),sffx,qs.q])							
+								
 							cont.commit()								
 							curt.close()
 						

@@ -32,7 +32,7 @@ geomCol = "the_geom"
 sslCert = False
 sslKey = False
 execFile = "@amilna/yii2-iyo/components/exec"
-#web.config.debug = False
+web.config.debug = False
 
 def main(argv):		
 	global ip
@@ -145,24 +145,19 @@ class Tilep:
 			else :					
 				rvar = re.compile(r"(insert|update|delete)", re.IGNORECASE)
 				dvar = rvar.sub("", str(qray[0]))				
-				dvar = re.match(r"([a-zA-Z0-9_]+)", dvar)			
-							
-			dop = re.match(r"^(and|or|AND|OR|!=|=|<|>|<=|>=)$",str(qray[1]))						
+				dvarl = re.match(r"([a-zA-Z0-9_\.]+)", dvar)			
+						
+			dopl = re.match(r"^(and|or|AND|OR|!=|=|<|>|<=|>=)$",str(qray[1]))						
 			
 			if isinstance(qray[2], list) :
 				dparam = self.getQuery(qray[2])
 			else :					
 				rparam = re.compile(r"(insert|update|delete)", re.IGNORECASE)
 				dparam = rparam.sub("", str(qray[2]))
-				dparam = re.match(r"([a-zA-Z0-9_\ \%\']+)", dparam)						
+				dparaml = re.match(r"([a-zA-Z0-9_ \%\']+)", dparam)												
 			
-			if dvar != None and dop != None and dparam != None :
-				if not isinstance(dvar, str) :
-					dvar = dvar.group(1)
-				if not isinstance(dparam, str) :
-					dparam = dparam.group(1)	
-					
-				qray = "("+dvar+" "+dop.group(1)+" "+dparam+")"
+			if dvarl != None and dopl != None and dparaml != None :									
+				qray = "("+dvar+" "+dopl.group(1)+" "+dparam+")"				
 			else :
 				qray = "1"
 					
@@ -188,11 +183,23 @@ class Tilep:
 			copyfile(src, dst)				
 			if os.path.exists(dst):				
 				con = lite.connect(dst)
-				cur = con.cursor()    				
-				cur.execute(csql)								
-			else:
+				cur = con.cursor()    								
+				cur.execute(csql)										
+			else:				
 				dst = False			
-		
+				
+		con = lite.connect(dst)
+		cur = con.cursor()    						
+		try :			
+			if not isxml:
+				asql = "ALTER TABLE tiles ADD COLUMN q 'TEXT'"
+			else:
+				asql = "ALTER TABLE xmls ADD COLUMN q 'TEXT'"
+			cur.execute(asql)										
+		except :
+			pass
+		cur.close()	
+			
 		return dst
 	def getXml(self, tilename, isforce = False, q = ''):
 		
@@ -204,16 +211,15 @@ class Tilep:
 					xmlstr = open(xmldir+'/'+tilename+'.xml',"rb").read()
 					xmlstr = xmlstr.replace('{xmldir}', xmldir)					
 		
-		else:			
-			#tilep = Tilep()		
+		else:						
 			dbfile = self.getDb('xml',True)	
 			if (dbfile):
 				con = lite.connect(dbfile)
 				cur = con.cursor()    				
 			
 				if not isforce:		
-					sql = "SELECT * from xmls WHERE tilename = ?;"
-					cur.execute(sql,[tilename])		
+					sql = "SELECT * from xmls WHERE tilename = ? AND q = ?;"
+					cur.execute(sql,[tilename,q])		
 					rows = cur.fetchall()
 					n = 0
 					for row in rows:						
@@ -239,22 +245,41 @@ class Tilep:
 						
 					if xmlstr:
 						
-						if q != '':
-							#xmlstr = re.sub(r"FROM sxz51_iyo_data_1",r"FROM sxz51_iyo_data_1 WHERE tes = 2",xmlstr)							
-							qray = json.loads(q)
+						if q != '':							
+							
+							#xmlstr = xmlstr.replace("WHERE istoday &gt;= 0 order by istoday desc,confidence desc","group by acq_dates order by istoday desc,confidence desc")
+							
+							try:
+								qray = json.loads(q)
+							except ValueError:
+								qray = False	
+								
 							if isinstance(qray, list):
 								qc = str(self.getQuery(qray))
 								
-								if qc != "" :								
-									xmlstr = re.sub(r"FROM ([a-zA-Z0-9\_]+)([a-zA-Z0-9\_\=\(\) ]+)?",r"FROM \1 WHERE "+qc+r" AND\2", xmlstr)							
-									xmlstr = re.sub(r"AND(\)| ?GROUP)",r"\1", xmlstr)
-									xmlstr = re.sub(r"AND( WHERE)",r"AND", xmlstr)
+								if qc != "" :																												
+									wxml = re.compile(r"WHERE ([a-zA-Z0-9_ \.,\&\;\>\<\!\=\(\)]+)\) as layer", re.IGNORECASE)								
+									wxmlstr = wxml.sub(r"WHERE "+qc+r" AND \1) as layer", xmlstr)																																									
+									if (wxmlstr == xmlstr) :
+										gxml = re.compile(r"GROUP BY ([a-zA-Z0-9_ \.,]+)\) as layer", re.IGNORECASE)								
+										gxmlstr = gxml.sub(r"WHERE "+qc+r" GROUP BY \1) as layer", xmlstr)																																										
+										if (gxmlstr == xmlstr) :
+											oxml = re.compile(r"ORDER BY ([a-zA-Z0-9_ \.,]+)\) as layer", re.IGNORECASE)								
+											oxmlstr = oxml.sub(r"WHERE "+qc+r" ORDER BY \1) as layer", xmlstr)																																												
+											if (oxmlstr != xmlstr) :
+												xmlstr = oxmlstr
+										else :
+											xmlstr = gxmlstr	
+									else :
+										xmlstr = wxmlstr																		
+						
+						tes = prop
 															
-						sql = "DELETE from xmls WHERE tilename = ?;"
-						#cur.execute(sql,[tilename])
+						sql = "DELETE from xmls WHERE tilename = ? AND q = ?;"
+						cur.execute(sql,[tilename,q])
 						sql = "INSERT INTO xmls VALUES (?,?,?);"			
-						#cur.execute(sql,[tilename,lite.Binary(zlib.compress(xmlstr)),q])
-						#con.commit()
+						cur.execute(sql,[tilename,lite.Binary(zlib.compress(xmlstr)),q])
+						con.commit()
 						cur.close()
 				
 		return xmlstr	

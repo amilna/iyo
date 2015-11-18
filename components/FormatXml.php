@@ -387,26 +387,44 @@ class FormatXml extends Component
 				$geom_col = $this->geom_col;
 				if (isset($config['dataquery']))
 				{
-					$config['dataquery'] = str_replace(["insert ","delete ","update "],"",strtolower($config['dataquery']));
+					$config['dataquery'] = preg_replace('/(insert|delete|update)/i',"",$config['dataquery']);
 					
-					preg_match('/(\d+)/',$config['dataquery'],$qid);
-					//$sql = "(SELECT * FROM ".$model->db->tablePrefix."iyo_data_".count($did) > 0?$did[1]:$model->data_id.") as layer".$n;					
+					preg_match('/(\d+)/',$config['dataquery'],$qid);					
 					
-					preg_match('/intersect\((\d+)\,(\d+)\)/',$config['dataquery'],$intersect);
-					preg_match('/centerof\((\d+)\)/',$config['dataquery'],$centerof);					
-					preg_match('/centeron\((\d+)\)/',$config['dataquery'],$centeron);
-					preg_match('/dissolveby\((\d+)\,([a-z0-9_]+)\)/',$config['dataquery'],$dissolve);										
+					preg_match('/intersect\((\d+)\,(\d+)\)/i',$config['dataquery'],$intersect);
+					preg_match('/centerof\((\d+)\)/i',$config['dataquery'],$centerof);					
+					preg_match('/centeron\((\d+)\)/i',$config['dataquery'],$centeron);
+					preg_match('/dissolveby\((\d+)\,([a-z0-9_]+)\)/i',$config['dataquery'],$dissolve);										
+					preg_match('/jointon\((.*)\)/i',$config['dataquery'],$jointon);											
 					
 					if (count($intersect) > 0)
 					{
-						$sql = "(SELECT * FROM ".$this->db->tablePrefix."iyo_data_".$intersect[1]." itc1,".$this->db->tablePrefix."iyo_data_".$intersect[2]." itc2 WHERE ST_INTERSECT(itc1.".$geom_col.",itc2.".$geom_col.")) as layer".$n;
+						$cols = "itc1.gid as gid,";						
+						foreach ($intersect as $itcn=>$itcv)
+						{													
+							$sql = "SELECT metadata FROM ".Data::tableName()." WHERE id = :id";						
+							$dataquery = $this->db->createCommand($sql)->bindValues([':id'=>$intersect[2]])->queryScalar();
+							
+							if (!empty($dataquery))
+							{
+								$metadata = json_decode($dataquery,true);
+								if (isset($metadata['columns']))
+								{
+									foreach ($metadata['columns'] as $mc)
+									{
+										$cols .= "itc".($itcn+1).".".$mc['name'].",";
+									}							
+								}						
+							}
+						}						
+						
+						$sql = "(SELECT ".$cols."itc1.".$geom_col." FROM ".$this->db->tablePrefix."iyo_data_".$intersect[1]." itc1,".$this->db->tablePrefix."iyo_data_".$intersect[2]." itc2 WHERE ST_INTERSECTS(itc1.".$geom_col.",itc2.".$geom_col.")) as layer".$n;						
 					}
 					elseif (count($dissolve) > 0)
 					{
 						
 						$cols = $dissolve[2];												
-						$sql = "(SELECT min(gid) as gid,".$cols.",st_collect(".$geom_col.") as ".$geom_col." FROM ".$this->db->tablePrefix."iyo_data_".$dissolve[1]." dsv1 GROUP BY ".$cols.") as layer".$n;
-						//$sql = "(SELECT * FROM ".preg_replace('/[^a-zA-Z0-9]/','_',substr(strtolower($config['dataquery']),0,-1)).") as layer".$n;
+						$sql = "(SELECT min(gid) as gid,".$cols.",ST_UNION(".$geom_col.") as ".$geom_col." FROM ".$this->db->tablePrefix."iyo_data_".$dissolve[1]." dsv1 GROUP BY ".$cols.") as layer".$n;						
 					}					
 					elseif (count($centerof) > 0)
 					{
@@ -448,12 +466,71 @@ class FormatXml extends Component
 						}
 						$sql = "(SELECT ".$cols."(ST_POINTONSURFACE(cto1.".$geom_col.")) as ".$geom_col." FROM ".$this->db->tablePrefix."iyo_data_".$centeron[1]." cto1) as layer".$n;
 					}					
+					elseif (count($jointon) > 0)
+					{
+						$joints = json_decode($jointon[1],true);
+						$sql = false;						
+						
+						if (is_array($joints))
+						{							
+							$strj = '';
+							$cols = "t.gid as gid,";														
+							foreach ($joints as $jn=>$jo)
+							{										
+								if (is_array($jo))
+								{																		
+									if (count($jo) == 2 && is_int($jo[0]) )
+									{
+										$strji = ($jn == 0?"":" LEFT JOIN ").$this->db->tablePrefix."iyo_data_".$jo[0].($jn == 0?" t":" j".$jo[0]);										
+										if ($jn > 0)
+										{											
+											preg_match('/ON ([a-zA-Z0-9_\.]+) = ([a-zA-Z0-9_\.]+)/i',$jo[1],$jcol);	
+											if (count($jcol) > 0)
+											{
+												$strji .= " ".$jo[1];
+												$strj .= $strji;
+											}																							
+										}
+										else
+										{
+											$strj .= $strji;
+										}
+										
+										$sql = "SELECT metadata FROM ".Data::tableName()." WHERE id = :id";						
+										$dataquery = $this->db->createCommand($sql)->bindValues([':id'=>$jo[0]])->queryScalar();
+										
+										if (!empty($dataquery))
+										{
+											$metadata = json_decode($dataquery,true);
+											if (isset($metadata['columns']))
+											{
+												foreach ($metadata['columns'] as $mc)
+												{
+													$cols .= ($jn == 0?" t":" j".$jo[0]).".".$mc['name'].",";
+												}							
+											}						
+										}
+									}	
+								}	
+							}														
+							
+							if ($strj != '')
+							{							
+								$sql = "(SELECT ".$cols."t.".$geom_col." FROM ".$strj.") as layer".$n;														
+							}
+						}
+						
+						if (!$sql)
+						{
+							$sql = "(SELECT * FROM ".$this->db->tablePrefix."iyo_data_".(count($qid) > 0?$qid[1]:$did).") as layer".$n;
+						}
+					}
 					else
 					{
 						$sql = "(SELECT * FROM ".$this->db->tablePrefix."iyo_data_".(count($qid) > 0?$qid[1]:$did).") as layer".$n;
 					}
 						
-					preg_match('/selecton\((\d+)\,(.*)\)/',$config['dataquery'],$selecton);	
+					preg_match('/selecton\((\d+)\,(.*)\)/i',$config['dataquery'],$selecton);	
 					if (count($selecton) > 0)
 					{
 						
@@ -469,9 +546,9 @@ class FormatXml extends Component
 						$cols .= $cols == ''?'':',';						
 						//$sql = "(SELECT gid,".$cols."".$geom_col." FROM ".$this->db->tablePrefix."iyo_data_".$selecton[1]." slo1) as layer".$n;
 						$sql = str_replace("(SELECT ","(SELECT ".$cols,$sql);
-					}
+					}															
 					
-					preg_match('/where\((\d+)\,(.*)\)/',$config['dataquery'],$where);	
+					preg_match('/where\((\d+)\,(.*)\)/i',$config['dataquery'],$where);	
 					if (count($where) > 0)
 					{
 						
@@ -483,8 +560,7 @@ class FormatXml extends Component
 				{
 					$sql = "(SELECT * FROM ".$this->db->tablePrefix."iyo_data_".$did.") as layer".$n;
 				}								
-				
-				
+								
 				
 				$table = $data->addChild('Parameter',$sql);
 				$table->addAttribute('name','table');

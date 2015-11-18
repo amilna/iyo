@@ -236,7 +236,7 @@ class RecordSearch extends Record
 			{
 				if ($s[0] != $geom_col)
 				{
-					$str .= ($str == ""?"":",").$s[0];
+					$str .= ($str == ""?"":",").'"'.$s[0].'"';
 				}
 			}
 							

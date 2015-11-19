@@ -99,7 +99,7 @@ def main(argv):
 	urls = (		
 		tileURL+'/([a-zA-Z0-9_]+)', 'clear_tile',
 		tileURL+'/([a-zA-Z0-9_]+)/(\d+)/(\d+)/(\d+).(png|json)', 'get_tile',
-		tileURL+'/([a-zA-Z0-9_]+)/(\d+)/(\d+)/(\d+)/(\d+).png', 'get_image'
+		tileURL+'/([a-zA-Z0-9_]+)/\+(\d+)/(\d+)/(\d+)/(\d+).png', 'get_image'
 	)			
 	
 	if sslCert and sslKey:

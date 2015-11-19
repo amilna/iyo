@@ -181,12 +181,12 @@ class Map extends Widget
 								$this->options['layers'][$i]['urls'] = [];
 								for ($np=0;$np<count($module->ports);$np++)
 								{
-									$this->options['layers'][$i]['urls'][] = "http".(!empty($module->sslKey)?"s":"")."://".(!empty($module->proxyhosts)?$module->proxyhosts[$np]:$module->ipaddress.":".$module->ports[$np]).$tileURL."/".$tilename."/{epsgs}/{z}/{x}/{y}.png";
+									$this->options['layers'][$i]['urls'][] = "http".(!empty($module->sslKey)?"s":"")."://".(!empty($module->proxyhosts)?$module->proxyhosts[$np]:$module->ipaddress.":".$module->ports[$np]).$tileURL."/".$tilename."/+{epsgs}/{z}/{x}/{y}.png";
 								}
 							}
 							else
 							{								
-								$this->options['layers'][$i]['urls'] = [$tileURL."/".$tilename."/{epsgs}/{z}/{x}/{y}.png"];								
+								$this->options['layers'][$i]['urls'] = [$tileURL."/".$tilename."/+{epsgs}/{z}/{x}/{y}.png"];								
 							}
 						}
 						else

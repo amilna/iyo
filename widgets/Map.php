@@ -273,15 +273,16 @@ class Map extends Widget
 		$this->options['reqUrl'] = $path;	
 				
 		$options = json_encode($this->options);
+		$iseditable = (isset($this->options['editable'])?$this->options['editable']:false);				
 		
 		$script = '	
 			var '.$this->id.';
 			var csrfToken = $(\'meta[name="csrf-token"]\').attr("content");
 			var SA = new sA({baseUrl:"'.$bundle->baseUrl.'/js/'.(YII_DEBUG ?'sa-src/':'').'",plugins:["'.(YII_DEBUG ?'Map':'Map.min').'"]});		
 			SA.init(function(){				
-				'.($this->options['editable']?'SA.getScript("'.$bundle->baseUrl.'/js/turf.min.js",function(){':'').'
+				'.($iseditable?'SA.getScript("'.$bundle->baseUrl.'/js/turf.min.js",function(){':'').'
 				'.$this->id.' = new sA.Map('.$options.');			
-				'.($this->options['editable']?'});':'').'
+				'.($iseditable?'});':'').'
 			});					
 						
 		' . PHP_EOL;

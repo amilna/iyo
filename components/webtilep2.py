@@ -222,7 +222,11 @@ class Tilep:
 				cur = con.cursor()    				
 			
 				if not isforce:		
-					sql = "SELECT * from xmls WHERE tilename = ? AND q = ?;"
+					if (q == '') :						
+						sql = "SELECT * from xmls WHERE tilename = ? AND (q is null or q = ?);"
+					else :	
+						sql = "SELECT * from xmls WHERE tilename = ? AND q = ?;"
+						
 					cur.execute(sql,[tilename,q])		
 					rows = cur.fetchall()
 					n = 0
@@ -347,7 +351,11 @@ class get_tile:
 		
 		if isCache and dbfilet:
 			
-			sql = "SELECT * from tiles WHERE z = ? AND x = ? AND y = ? AND sffx = ? AND q = ?;"				
+			if (qs.q == '') :
+				sql = "SELECT * from tiles WHERE z = ? AND x = ? AND y = ? AND sffx = ? AND (q is null or q = ?);"				
+			else :	
+				sql = "SELECT * from tiles WHERE z = ? AND x = ? AND y = ? AND sffx = ? AND q = ?;"				
+				
 			curt.execute(sql,[z,x,y,sffx,qs.q])
 					
 			rows = curt.fetchall()								
@@ -509,7 +517,11 @@ class get_image:
 			curt = cont.cursor()
 				
 		if isCache and dbfilet:		
-			sql = "SELECT * from tiles WHERE z = ? AND x = ? AND y = ? AND sffx = ? AND q = ?;"				
+			if (qs.q == '') :
+				sql = "SELECT * from tiles WHERE z = ? AND x = ? AND y = ? AND sffx = ? AND (q is null or q = ?);"				
+			else :	
+				sql = "SELECT * from tiles WHERE z = ? AND x = ? AND y = ? AND sffx = ? AND q = ?;"				
+				
 			curt.execute(sql,[z,x,y,sffx,qs.q])		
 			rows = curt.fetchall()								
 			for row in rows:						

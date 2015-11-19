@@ -271,9 +271,7 @@ class Tilep:
 										else :
 											xmlstr = gxmlstr	
 									else :
-										xmlstr = wxmlstr																		
-						
-						tes = prop
+										xmlstr = wxmlstr																														
 															
 						sql = "DELETE from xmls WHERE tilename = ? AND q = ?;"
 						cur.execute(sql,[tilename,q])

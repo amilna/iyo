@@ -169,6 +169,26 @@ class Tilep:
 				qray = "1"
 					
 		return qray
+	def queryXml(self,qc,xmlstr):
+		wxml = re.compile(r"WHERE ([a-zA-Z0-9_ \'\"\.,\&\;\>\<\!\=\(\)]+)\) as layer", re.IGNORECASE)								
+		wxmlstr = wxml.sub(r"WHERE "+qc+r" AND \1) as layer", xmlstr)																																									
+		if (wxmlstr == xmlstr) :
+			gxml = re.compile(r"GROUP BY ([a-zA-Z0-9_ \"\.,]+)\) as layer", re.IGNORECASE)								
+			gxmlstr = gxml.sub(r"WHERE "+qc+r" GROUP BY \1) as layer", xmlstr)																																										
+			if (gxmlstr == xmlstr) :
+				oxml = re.compile(r"ORDER BY ([a-zA-Z0-9_ \"\.,]+)\) as layer", re.IGNORECASE)								
+				oxmlstr = oxml.sub(r"WHERE "+qc+r" ORDER BY \1) as layer", xmlstr)																																												
+				if (oxmlstr != xmlstr) :
+					xmlstr = oxmlstr
+				else :
+					nxml = re.compile(r"([a-zA-Z0-9_ \'\"\.,\&\;\>\<\!\=\(\)]+)\) as layer", re.IGNORECASE)								
+					xmlstr = nxml.sub(r"\1 WHERE "+qc+r" ) as layer", xmlstr)
+			else :
+				xmlstr = gxmlstr	
+		else :
+			xmlstr = wxmlstr	
+		
+		return xmlstr			
 	def getDb(self, dbname, isxml=False):
 		adir = os.path.dirname(os.path.realpath(__file__));	
 		if not isxml:
@@ -217,6 +237,19 @@ class Tilep:
 				if tilename+'.xml' in os.listdir(xmldir):
 					xmlstr = open(xmldir+'/'+tilename+'.xml',"rb").read()
 					xmlstr = xmlstr.replace('{xmldir}', xmldir)					
+					
+					if xmlstr:							
+						if q != '':																				
+							try:
+								qray = json.loads(q)
+							except ValueError:
+								qray = False	
+								
+							if isinstance(qray, list):
+								qc = str(self.getQuery(qray))
+								
+								if qc != "" :																												
+									xmlstr = self.queryXml(qc,xmlstr)
 		
 		else:						
 			dbfile = self.getDb('xml',True)	
@@ -269,25 +302,8 @@ class Tilep:
 								qc = str(self.getQuery(qray))
 								
 								if qc != "" :																												
-									wxml = re.compile(r"WHERE ([a-zA-Z0-9_ \.,\&\;\>\<\!\=\(\)]+)\) as layer", re.IGNORECASE)								
-									wxmlstr = wxml.sub(r"WHERE "+qc+r" AND \1) as layer", xmlstr)																																									
-									if (wxmlstr == xmlstr) :
-										gxml = re.compile(r"GROUP BY ([a-zA-Z0-9_ \.,]+)\) as layer", re.IGNORECASE)								
-										gxmlstr = gxml.sub(r"WHERE "+qc+r" GROUP BY \1) as layer", xmlstr)																																										
-										if (gxmlstr == xmlstr) :
-											oxml = re.compile(r"ORDER BY ([a-zA-Z0-9_ \.,]+)\) as layer", re.IGNORECASE)								
-											oxmlstr = oxml.sub(r"WHERE "+qc+r" ORDER BY \1) as layer", xmlstr)																																												
-											if (oxmlstr != xmlstr) :
-												xmlstr = oxmlstr
-											else :
-												nxml = re.compile(r"([a-zA-Z0-9_ \.,\&\;\>\<\!\=\(\)]+)\) as layer", re.IGNORECASE)								
-												xmlstr = nxml.sub(r"\1 WHERE "+qc+r" ) as layer", xmlstr)
-										else :
-											xmlstr = gxmlstr	
-									else :
-										xmlstr = wxmlstr																														
-						
-						#tes = prop
+									xmlstr = self.queryXml(qc,xmlstr)																														
+												
 															
 						sql = "DELETE from xmls WHERE tilename = ? AND q = ?;"
 						cur.execute(sql,[tilename,q])
@@ -320,7 +336,7 @@ class clear_tile:
 		web.header("Access-Control-Allow-Origin", "*")
 		web.header("Content-Type", "text/plain")
 		if xmlstr:
-			return xmlstr			
+			return xmlstr				
 			return '{"tilename":"'+tilename+'","status":true}'			
 		else :
 			return '{"tilename":"'+tilename+'","status":false}'	
@@ -337,7 +353,7 @@ class get_tile:
 			return ''
 		
 		cType = {
-            "png":"images/png",
+            "png":"image/png",
             "json":"text/plain"
 		}
 				
@@ -504,7 +520,7 @@ class get_image:
 			return ''
 		
 		cType = {
-            "png":"images/png"
+            "png":"image/png"
 		}
 				
 		qs = web.input(r='',x='',q='')

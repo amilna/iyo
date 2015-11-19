@@ -17,6 +17,7 @@ except ImportError, E:
 
 cached_tiles = {}
 cached_xml = {}
+cached_maps = {}
 xmldir = '@amilna/yii2-iyo/xml'
 ip = "127.0.0.1"	
 ports = [1401]
@@ -147,17 +148,20 @@ class Tilep:
 				dvar = rvar.sub("", str(qray[0]))				
 				dvarl = re.match(r"([a-zA-Z0-9_\.]+)", dvar)			
 						
-			dopl = re.match(r"^(and|or|AND|OR|!=|=|<|>|<=|>=)$",str(qray[1]))						
+			dopl = re.match(r"^(like|and|or|!=|=|<|>|<=|>=)$",str(qray[1]).lower())
 			
 			if isinstance(qray[2], list) :
 				dparam = self.getQuery(qray[2])
 			else :					
 				rparam = re.compile(r"(insert|update|delete)", re.IGNORECASE)
 				dparam = rparam.sub("", str(qray[2]))
-				dparaml = re.match(r"([a-zA-Z0-9_ \%\']+)", dparam)												
+				dparaml = re.match(r"([a-zA-Z0-9_ \%\']+)", dparam)																		
 			
-			if dvarl != None and dopl != None and dparaml != None :									
-				qray = "("+dvar+" "+dopl.group(1)+" "+dparam+")"				
+			if dvarl != None and dopl != None and dparaml != None :
+				if dopl.group(1) == 'like':
+					qray = "(lower("+dvar+") "+dopl.group(1)+" "+dparam.lower()+")"				
+				else :	
+					qray = "("+dvar+" "+dopl.group(1)+" "+dparam+")"				
 			else :
 				qray = "1"
 					
@@ -472,6 +476,8 @@ class get_tile:
 class get_image:
 	def GET(self, tilename, epsg, z, x, y):						
 		
+		global cached_maps
+		
 		sffx = 'png';		
 		epsg = int(epsg)
 		z = int(z)
@@ -485,7 +491,7 @@ class get_image:
             "png":"images/png"
 		}
 				
-		qs = web.input(r='',x='')
+		qs = web.input(r='',x='',q='')
 		isCache = False
 		if qs.r == '':
 			isCache = True								
@@ -503,8 +509,8 @@ class get_image:
 			curt = cont.cursor()
 				
 		if isCache and dbfilet:		
-			sql = "SELECT * from tiles WHERE z = ? AND x = ? AND y = ? AND sffx = ?;"				
-			curt.execute(sql,[z,x,y,sffx])		
+			sql = "SELECT * from tiles WHERE z = ? AND x = ? AND y = ? AND sffx = ? AND q = ?;"				
+			curt.execute(sql,[z,x,y,sffx,qs.q])		
 			rows = curt.fetchall()								
 			for row in rows:						
 				output = zlib.decompress(row[7])					
@@ -513,19 +519,8 @@ class get_image:
 				web.header("Content-Type", cType[sffx])				
 				return output
 			
-		if not output:																
-			#if (epsg != 4326):			
-			mp = mapnik.Map(256,256,'+init=epsg:'+str(epsg))
-			#else:	
-			#	mp = mapnik.Map(256,256)
-				
-			s = mapnik.Style()
-			r = mapnik.Rule()
-			r.symbols.append(mapnik.RasterSymbolizer())
-			s.rules.append(r)
-			mp.append_style('RStyle',s)
-			
-			tilep = Tilep()
+		if not output:	
+						
 			box = tilep.getBbox(z=z,x=x,y=y)		
 			geo_extent = Box2d(box[0],box[1],box[2],box[3])		
 			
@@ -533,54 +528,77 @@ class get_image:
 			merc_proj = Projection('+init=epsg:'+str(epsg))	
 
 			transform = ProjTransform(geo_proj,merc_proj)
-			merc_extent = transform.forward(geo_extent)																										
+			merc_extent = transform.forward(geo_extent)
 			
-			adir = os.path.dirname(os.path.realpath(__file__))
-			coni = lite.connect(adir+'/indeks.db')
-			curi = coni.cursor()    
-			#sql = "SELECT * FROM indeks WHERE name = '"+btilename+"' AND epsg = "+str(epsg)+" AND ((minx >= "+str(merc_extent[0])+" AND miny >= "+str(merc_extent[1])+" AND maxx <= "+str(merc_extent[2])+" AND maxy <= "+str(merc_extent[3])+") OR (minx <= "+str(merc_extent[0])+" AND miny <= "+str(merc_extent[1])+" AND maxx >= "+str(merc_extent[2])+" AND maxy >= "+str(merc_extent[3])+"))"
-			sql = "SELECT * FROM indeks WHERE name = ? AND epsg = ?;"
-			#if epsg == 4326:
-			#	sql = "SELECT * FROM indeks WHERE name = '"+btilename+"'"
-			curi.execute(sql,[tilename,epsg])
-			rows = curi.fetchall()
-			n = 0
-			for row in rows:						
-				afilename = str(row[1])
-				ds = mapnik.Gdal(file=afilename)
-				#if (epsg != 4326):
-				if (True):
-					layer = mapnik.Layer('raster'+str(n),'+init=epsg:'+str(epsg))					
-				#else:
-				#	layer = mapnik.Layer('raster'+str(n))						
-				layer.datasource = ds
-				layer.styles.append('RStyle')
-				mp.layers.append(layer)
-				n = n+1
+			mp = False
+			if isCache and atilename in cached_maps :				
+				if qs.q in cached_maps[atilename]:
+					mp = cached_maps[atilename][qs.q]
 			
-			#xmlstr = mapnik.save_map_to_string(mp)
-			#print xmlstr								
-			#mapnik.load_map_from_string(mp,xmlstr)																
+			if not mp:
+																						
+				mp = mapnik.Map(256,256,'+init=epsg:'+str(epsg))			
+					
+				s = mapnik.Style()
+				r = mapnik.Rule()
+				r.symbols.append(mapnik.RasterSymbolizer())
+				s.rules.append(r)
+				mp.append_style('RStyle',s)								
+				
+				adir = os.path.dirname(os.path.realpath(__file__))
+				coni = lite.connect(adir+'/indeks.db')
+				curi = coni.cursor()    								
+				
+				sql = "SELECT * FROM indeks WHERE name = ? AND epsg = ? AND ((maxx >= ? AND maxy >= ? AND  minx <= ? AND miny <= ?) OR (minx <= ? AND miny <= ? AND maxx >= ? AND maxy >= ?))"
+				if (qs.q != '') :
+					try:
+						qray = json.loads(qs.q)
+					except ValueError:
+						qray = False	
+						
+					if isinstance(qray, list):
+						qray[0]= 'filename'
+						qc = str(tilep.getQuery(qray))						
+						sql = sql+"AND "+qc					
+					
+				curi.execute(sql,[tilename,epsg,str(merc_extent[0]),str(merc_extent[1]),str(merc_extent[2]),str(merc_extent[3]),str(merc_extent[0]),str(merc_extent[1]),str(merc_extent[2]),str(merc_extent[3])])
+			#ok	sql = "SELECT * FROM indeks WHERE name = ? AND epsg = ?;"			
+			#ok	curi.execute(sql,[tilename,epsg])
+				rows = curi.fetchall()
+				n = 0
+				for row in rows:						
+					afilename = str(row[1])
+					ds = mapnik.Gdal(file=afilename)
+					layer = mapnik.Layer('raster'+str(n),'+init=epsg:'+str(epsg))									
+					layer.datasource = ds
+					layer.styles.append('RStyle')
+					mp.layers.append(layer)
+					n = n+1
+				
+				#xmlstr = mapnik.save_map_to_string(mp)
+				#print xmlstr								
+				#mapnik.load_map_from_string(mp,xmlstr)																
+				
+				if atilename not in cached_maps :
+					cached_maps[atilename] = {}
+					
+				#cached_maps[atilename][qs.q] = mp
 			
 			mp.zoom_to_box(merc_extent)																																										
 													
 			im = Image(mp.width,mp.height)		
 			mapnik.render(mp,im)
-			output = im.tostring('png')																
-			
+			output = im.tostring('png')																			
 			
 			if dbfilet:
 				minx = box[0]																						
 				miny = box[1]
 				maxx = box[2]
 				maxy = box[3]
-				sql = "INSERT INTO tiles VALUES (?,?,?,?,?,?,?,?,?);"			
-				curt.execute(sql,[z,x,y,minx,miny,maxx,maxy,lite.Binary(zlib.compress(output)),sffx])
+				sql = "INSERT INTO tiles VALUES (?,?,?,?,?,?,?,?,?,?);"			
+				curt.execute(sql,[z,x,y,minx,miny,maxx,maxy,lite.Binary(zlib.compress(output)),sffx,qs.q])
 				cont.commit()
-				curt.close()
-									
-			#if zoomcache >= z :
-			#	mapnik.render_to_file(mp, str(afile))																															
+				curt.close()												
 						
 			web.header("Content-Type", cType[sffx])																						
 			return output					

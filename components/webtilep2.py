@@ -336,8 +336,7 @@ class clear_tile:
 		
 		web.header("Access-Control-Allow-Origin", "*")
 		web.header("Content-Type", "text/plain")
-		if xmlstr:
-			return xmlstr				
+		if xmlstr:				
 			return '{"tilename":"'+tilename+'","status":true}'			
 		else :
 			return '{"tilename":"'+tilename+'","status":false}'	

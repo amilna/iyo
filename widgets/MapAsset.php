@@ -30,7 +30,7 @@ class MapAsset extends AssetBundle
 
         $this->js[] = !YII_DEBUG ? 'js/ol.js' : 'js/ol-debug.js';       
         //$this->js[] = 'js/ol.js';   
-        $this->js[] = 'js/turf.min.js';        
+        //$this->js[] = 'js/turf.min.js';        
         $this->js[] = !YII_DEBUG ? 'js/ol.utfgrid.min.js' : 'js/sa-src/ol.utfgrid.js';       
         $this->js[] = !YII_DEBUG ? 'js/sA.min.js' : 'js/sa-src/sA.js';        
     }    

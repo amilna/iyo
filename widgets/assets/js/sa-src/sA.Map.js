@@ -470,8 +470,7 @@ sA.Map.prototype.addLayer = function(lconf) {
 			var layer = new ol.layer.Tile({
 				name : lconf.name+'~'+lconf.epsgs[e]['epsg'],	
 				isbase : false,
-				source: new ol.source.XYZ({			
-					//urls: [lconf.urls[0].replace('{epsgs}',lconf.epsgs[e]['epsg'])+'?r=123']
+				source: new ol.source.XYZ({								
 					urls: [lconf.urls[0].replace('{epsgs}',lconf.epsgs[e]['epsg'])]
 				})
 			});		
@@ -1013,64 +1012,54 @@ sA.Map.prototype.initUiLayer = function(layer) {
 						var parseUrl = function (tileCoords, pixelRatio, projection) {
 							var d = new Date();
 							var n = d.getTime();
-							var url = elayer.conf.urls[0]+"?r="+n;
-														
+							//var url = elayer.conf.urls[0]+"?r="+n;
+							var url = elayer.conf.urls[0].replace(/(\?|&)r\=(\d+)/g,"");
+							url = url.replace(/\.png\??(.*)?/g,".png?r="+n+"&$1");								
 							
 							url = url.replace('{z}', tileCoords[0] || 0);
 							url = url.replace('{x}', tileCoords[1] || 0);
 							url = url.replace('{y}', tileCoords[2] || 0);
 												
-							elayer.utfGrid.data = [];
+							//elayer.utfGrid.data = [];
 							return url;
 						};
 								
 						map.sai.xhr(map.sai.reqUrl + "/iyo/record/rest/?data=" + elconf.dataId +"&id=" + 0 ,function(jsonString){
 							var res = JSON.parse(jsonString);			
 							if (res.status)
-							{
+							{																
+								setTimeout(function () {								
+									elayer.utfGrid.data = [];
 								
-								var d = new Date();
-								var n = d.getTime();		
-								var url = elayer.conf.urls[0];					
-								url = url.replace(/\?r\=(\d+)/g,"");
-								url = url.replace(/\/\{z\}\/\{x\}\/\{y\}\.png/g,"");
-								url = url+"?r="+n;				
-								map.sai.xhr(url ,function(){
+									if (map.sai.isObj(elayer.getSource().setTileUrlFunction))
+									{								
+										elayer.getSource().setTileUrlFunction(parseUrl);				
+									}								
 									
-								});	
-								
-								
-								if (map.sai.isObj(elayer.getSource().setTileUrlFunction))
-								{								
-									elayer.getSource().setTileUrlFunction(parseUrl);				
-								}
-								else
-								{	
-									delete elayer.utfGrid.data[map.getView().getZoom()];							
-								}
-								
-								for (var i=0;i<delfeatures.length;i++)
-								{
-									var ef = delfeatures[i];								
-									map.sai.layerEditor.getSource().removeFeature(ef);
-								}
-								//elayer.getSource().clear();	
-								var evt = {map:map};
-								elayer.utfGrid.fetch(evt,true);
-								
-								if (map.sai.isObj(map.sai.featureOnEdit))
-								{
-									if (map.sai.featureOnEdit != null)
-									{										
-										map.sai.unHighlightFeature([map.sai.featureOnEdit,map.sai.layerEditor]);
-									}					
-								}
-								
-								$("#" + map.sai.id +" .iyo-attributes-message").css("display","block");
-								$("#" + map.sai.id +" .iyo-attributes-fields").html("");
-								
-								toogleEditor(button);
-								$("#iyo-modal-layer-confirm").modal("hide");
+									for (var i=0;i<delfeatures.length;i++)
+									{
+										var ef = delfeatures[i];								
+										map.sai.layerEditor.getSource().removeFeature(ef);
+									}
+									//elayer.getSource().clear();	
+									var evt = {map:map};
+									elayer.utfGrid.fetch(evt,true);
+									
+									if (map.sai.isObj(map.sai.featureOnEdit))
+									{
+										if (map.sai.featureOnEdit != null)
+										{										
+											map.sai.unHighlightFeature([map.sai.featureOnEdit,map.sai.layerEditor]);
+										}					
+									}
+									
+									$("#" + map.sai.id +" .iyo-attributes-message").css("display","block");
+									$("#" + map.sai.id +" .iyo-attributes-fields").html("");
+									
+									toogleEditor(button);
+									$("#iyo-modal-layer-confirm").modal("hide");
+								},2000);
+																
 							}	
 							map.sai.unwait();
 						},function(){map.sai.unwait();$("#iyo-modal-layer-confirm").modal("hide");},[],'POST',data);								
@@ -1411,13 +1400,14 @@ sA.Map.prototype.initUiAttributes = function(f,layer) {
 	var parseUrl = function (tileCoords, pixelRatio, projection) {
 		var d = new Date();
 		var n = d.getTime();
-		var url = layer.conf.urls[0]+"?r="+n;
+		var url = layer.conf.urls[0].replace(/(\?|&)r\=(\d+)/g,"");
+		url = url.replace(/\.png\??(.*)?/g,".png?r="+n+"&$1");									
 		
 		url = url.replace('{z}', tileCoords[0] || 0);
 		url = url.replace('{x}', tileCoords[1] || 0);
 		url = url.replace('{y}', tileCoords[2] || 0);				
 		
-		layer.utfGrid.data = [];
+		//layer.utfGrid.data = [];
 		return url;
 	};
 	
@@ -1442,45 +1432,36 @@ sA.Map.prototype.initUiAttributes = function(f,layer) {
 								
 			var res = JSON.parse(jsonString);			
 			if (res.status)
-			{
-				var d = new Date();
-				var n = d.getTime();		
-				var url = layer.conf.urls[0];					
-				url = url.replace(/\?r\=(\d+)/g,"");
-				url = url.replace(/\/\{z\}\/\{x\}\/\{y\}\.([a-z0-9]+)/g,"");
-				url = url+"?r="+n;				
-				map.sai.xhr(url ,function(){
+			{								
+				setTimeout(function () {												
+					if (map.sai.isObj(map.sai.featureOnEdit))
+					{
+						if (map.sai.featureOnEdit != null)
+						{						
+							map.sai.unHighlightFeature([map.sai.featureOnEdit,map.sai.layerEditor]);							
+							map.sai.featureOnEdit = null;
+						}					
+					}
+													
+					map.sai.select[1].getFeatures().clear();				
+					f.setId(res.gid);				
+					//f.set('isModified',false);
+					//layer.getSource().changed();
 					
-				});	
-				
-				if (map.sai.isObj(map.sai.featureOnEdit))
-				{
-					if (map.sai.featureOnEdit != null)
-					{						
-						map.sai.unHighlightFeature([map.sai.featureOnEdit,map.sai.layerEditor]);							
-						map.sai.featureOnEdit = null;
-					}					
-				}
-												
-				map.sai.select[1].getFeatures().clear();				
-				f.setId(res.gid);				
-				//f.set('isModified',false);
-				//layer.getSource().changed();
-				
-				if (map.sai.isObj(layer.getSource().setTileUrlFunction))
-				{								
-					layer.getSource().setTileUrlFunction(parseUrl);				
-				}
-				else
-				{	
-					//delete layer.utfGrid.data[map.getView().getZoom()];
 					layer.utfGrid.data = [];
-				}	
-				var evt = {map:map};
-				layer.utfGrid.fetch(evt,true);
-				
-				$("#" + map.sai.id +" .iyo-attributes-message").css("display","block");
-				$("#" + map.sai.id +" .iyo-attributes-fields").html("");
+					
+					if (map.sai.isObj(layer.getSource().setTileUrlFunction))
+					{								
+						layer.getSource().setTileUrlFunction(parseUrl);				
+					}
+					
+					var evt = {map:map};
+					layer.utfGrid.fetch(evt,true);
+					
+					$("#" + map.sai.id +" .iyo-attributes-message").css("display","block");
+					$("#" + map.sai.id +" .iyo-attributes-fields").html("");
+					
+				},2000);
 			}
 			else
 			{
@@ -1497,7 +1478,11 @@ sA.Map.prototype.initUiAttributes = function(f,layer) {
 			}
 			map.sai.unwait();
 											
-		},function(){map.sai.unwait();},[],'POST',data);
+		},function(){
+			setTimeout(function () {												
+				map.sai.unwait();
+			},5000);
+		},[],'POST',data);
 		
 	});
 	
@@ -1508,42 +1493,33 @@ sA.Map.prototype.initUiAttributes = function(f,layer) {
 								
 			var res = JSON.parse(jsonString);			
 			if (res.status)
-			{				
-				
-				var d = new Date();
-				var n = d.getTime();		
-				var url = layer.conf.urls[0];					
-				url = url.replace(/\?r\=(\d+)/g,"");
-				url = url.replace(/\/\{z\}\/\{x\}\/\{y\}\.([a-z0-9]+)/g,"");
-				url = url+"?r="+n;				
-				map.sai.xhr(url ,function(){
+			{												
+				setTimeout(function () {									
+					try {
+						var f = map.sai.layerEditor.getSource().getFeatureById(gid);
+						map.sai.layerEditor.getSource().removeFeature(f);
+					}
+					catch (e) {}								
 					
-				});	
-				
-				try {
-					var f = map.sai.layerEditor.getSource().getFeatureById(gid);
-					map.sai.layerEditor.getSource().removeFeature(f);
-				}
-				catch (e) {}								
-				
-				map.sai.featureOnEdit = null;
-				
-				map.sai.select[1].getFeatures().clear();
-				//layer.getSource().changed();											
-				if (map.sai.isObj(layer.getSource().setTileUrlFunction))
-				{								
-					layer.getSource().setTileUrlFunction(parseUrl);				
-				}
-				else
-				{	
-					//delete layer.utfGrid.data[map.getView().getZoom()];
+					map.sai.featureOnEdit = null;
+					
+					map.sai.select[1].getFeatures().clear();
+					//layer.getSource().changed();											
+					
 					layer.utfGrid.data = [];
-				}
-				var evt = {map:map};
-				layer.utfGrid.fetch(evt,true);
+					
+					if (map.sai.isObj(layer.getSource().setTileUrlFunction))
+					{								
+						layer.getSource().setTileUrlFunction(parseUrl);				
+					}
+					
+					var evt = {map:map};
+					layer.utfGrid.fetch(evt,true);
+					
+					$("#" + map.sai.id +" .iyo-attributes-message").css("display","block");
+					$("#" + map.sai.id +" .iyo-attributes-fields").html("");
 				
-				$("#" + map.sai.id +" .iyo-attributes-message").css("display","block");
-				$("#" + map.sai.id +" .iyo-attributes-fields").html("");
+				},2000);
 			}
 			else			
 			{
@@ -1561,16 +1537,18 @@ sA.Map.prototype.initUiAttributes = function(f,layer) {
 			map.sai.unwait();
 											
 		},function(){
-			try {
-				map.sai.layerEditor.getSource().removeFeature(f);
-			}
-			catch (e) {
-				
-			}
-			map.sai.select[1].getFeatures().clear();
-			$("#" + map.sai.id +" .iyo-attributes-message").css("display","block");
-			$("#" + map.sai.id +" .iyo-attributes-fields").html("");
-			map.sai.unwait();
+			setTimeout(function () {												
+				try {
+					map.sai.layerEditor.getSource().removeFeature(f);
+				}
+				catch (e) {
+					
+				}
+				map.sai.select[1].getFeatures().clear();
+				$("#" + map.sai.id +" .iyo-attributes-message").css("display","block");
+				$("#" + map.sai.id +" .iyo-attributes-fields").html("");
+				map.sai.unwait();
+			},5000);			
 		},[],'POST',data);
 	});
 	

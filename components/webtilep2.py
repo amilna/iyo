@@ -141,6 +141,7 @@ class Tilep:
 		return (s[0],e[1],e[0],s[1])
 	def getQuery(self, qray):			
 		if isinstance(qray, list) :
+			dvarl = qray
 			if isinstance(qray[0], list) :
 				dvar = self.getQuery(qray[0])
 			else :					
@@ -150,6 +151,7 @@ class Tilep:
 						
 			dopl = re.match(r"^(like|and|or|!=|=|<|>|<=|>=)$",str(qray[1]).lower())
 			
+			dparaml = qray
 			if isinstance(qray[2], list) :
 				dparam = self.getQuery(qray[2])
 			else :					
@@ -159,9 +161,10 @@ class Tilep:
 			
 			if dvarl != None and dopl != None and dparaml != None :
 				if dopl.group(1) == 'like':
-					qray = "(lower("+dvar+") "+dopl.group(1)+" "+dparam.lower()+")"				
+					qray = "(lower("+dvar+") "+dopl.group(1)+" "+dparam.lower()+")"								
 				else :	
-					qray = "("+dvar+" "+dopl.group(1)+" "+dparam+")"				
+					dop = dopl.group(1).replace('<','&lt;').replace('>','&gt;')	
+					qray = "("+dvar+" "+dop+" "+dparam+")"				
 			else :
 				qray = "1"
 					
@@ -276,10 +279,15 @@ class Tilep:
 											oxmlstr = oxml.sub(r"WHERE "+qc+r" ORDER BY \1) as layer", xmlstr)																																												
 											if (oxmlstr != xmlstr) :
 												xmlstr = oxmlstr
+											else :
+												nxml = re.compile(r"([a-zA-Z0-9_ \.,\&\;\>\<\!\=\(\)]+)\) as layer", re.IGNORECASE)								
+												xmlstr = nxml.sub(r"\1 WHERE "+qc+r" ) as layer", xmlstr)
 										else :
 											xmlstr = gxmlstr	
 									else :
 										xmlstr = wxmlstr																														
+						
+						#tes = prop
 															
 						sql = "DELETE from xmls WHERE tilename = ? AND q = ?;"
 						cur.execute(sql,[tilename,q])

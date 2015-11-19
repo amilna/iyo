@@ -280,10 +280,9 @@ ol.utfGrid.prototype.fetch = function(evt,forceRefresh)
 						if (ug.isObj(forceRefresh))
 						{
 							var d = new Date();
-							var n = d.getTime();							
-							ug.url = ug.url.replace(/\?r\=(\d+)/g,"");
-							ug.url = ug.url+"?r="+n;
-							//console.log(ug.url);
+							var n = d.getTime();														
+							ug.url = ug.url.replace(/(\?|&)r\=(\d+)/g,"");
+							ug.url = ug.url.replace(/\.json\??(.*)?/g,".json?r="+n+"&$1");							
 						}												
 									
 						ug.getUrl(ug.url.replace("{z}",tile[0]).replace("{x}",tile[1]).replace("{y}",tile[2]),

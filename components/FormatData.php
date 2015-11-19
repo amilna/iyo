@@ -742,7 +742,9 @@ class FormatData extends Component
 		$name = $metadata["tilename"];			
 		$sql = 'DELETE from indeks WHERE name = :name';				
 		$del = $sqlDb->createCommand($sql)->bindValues([':name'=>$name])->execute();		
-				
+		
+		$insertall = true;
+		$failinsert = [];
 		foreach ($files as $file)
 		{				
 			$gdalinfo = shell_exec("gdalinfo '".$file."'");
@@ -750,28 +752,46 @@ class FormatData extends Component
 			preg_match('/Lower Left([ ]+)\(([ ]+)?(-?[0-9\.]+),([ ]+)?(-?[0-9\.]+)\)/', $gdalinfo, $min);		
 			preg_match('/Upper Right([ ]+)\(([ ]+)?(-?[0-9\.]+),([ ]+)?(-?[0-9\.]+)\)/', $gdalinfo, $max);
 			preg_match('/\n    AUTHORITY\[\"EPSG\",\"(\d+)\"\]/', $gdalinfo, $epsg);																
+			
+			if (isset($epsg[1]) && isset($min[3]) && isset($min[5]) && isset($max[3]) && isset($max[5]))
+			{
 					
-			$sql = 'INSERT INTO indeks   
-				VALUES (:name, :filename, :epsg, :minx, :miny, :maxx, :maxy);';						
-						
-			$insert = $sqlDb->createCommand($sql)->bindValues([':name'=>$name,':filename'=>$file,
-					':epsg'=>$epsg[1],':minx'=>$min[3],':miny'=>$min[5],':maxx'=>$max[3],':maxy'=>$max[5]])->execute();													
+				$sql = 'INSERT INTO indeks   
+					VALUES (:name, :filename, :epsg, :minx, :miny, :maxx, :maxy);';						
+							
+				$insert = !is_array($sqlDb->createCommand($sql)->bindValues([':name'=>$name,':filename'=>$file,
+						':epsg'=>$epsg[1],':minx'=>$min[3],':miny'=>$min[5],':maxx'=>$max[3],':maxy'=>$max[5]])->execute());													
+					
+			}
+			else
+			{
+				$insert = false;
+				array_push($failinsert,['file'=>$file,'gdalinfo'=>$gdalinfo]);	
+			}		
+			
+			$insertall = !$insertall?false:$insert;
 		}		
 		
-		if ($insert)
+		if ($insertall)
 		{					
 			$metadata["srcfile"] = "";
 			$metadata = json_encode($metadata);																								
 			
 			$sql = "UPDATE ".Data::tableName()." 
-				SET (metadata) = ('".str_replace("'","''",$metadata)."') 
+				SET (metadata,remarks) = ('".str_replace("'","''",$metadata)."','') 
 				WHERE id = ".$this->dataid;						
 			
 			$res = !is_array($this->db->createCommand($sql)->execute());
 		}		
 		else
 		{
-			$res = false;
+			$failinsert = json_encode($failinsert);																								
+			
+			$sql = "UPDATE ".Data::tableName()." 
+				SET (remarks) = (concat(remarks,',','".str_replace("'","''",$failinsert)."')) 
+				WHERE id = ".$this->dataid;						
+			
+			$res = !is_array($this->db->createCommand($sql)->execute());						
 		}
 		
 		return $res;		

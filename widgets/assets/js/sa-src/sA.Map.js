@@ -2840,7 +2840,7 @@ sA.Map.prototype.mapOnMouseClick = function(evt) {
 			
 			var zoom = sai.map.getView().getZoom();		
 			//sai.mapPanZoom(evt.coordinate,(zoom<10?Math.min(zoom+2,19):zoom),[0,50]);			
-			sai.mapPanZoom(evt.coordinate,zoom,[0,50]);
+			sai.mapPanZoom(evt.coordinate,zoom,[-50,80]);
 		}	
 		else
 		{
@@ -2947,7 +2947,15 @@ sA.Map.prototype.mkUiNav = function() {
 		var vis = ($("#" + map.sai.id + " .iyo-panel0 .iyo-box-show").length > 0);	
 		if (!vis)
 		{
-			$(this).css("display","none");		
+			$("#" + map.sai.id + "  .iyo-panel1").css("display","none");		
+		}	
+	});
+	
+	$("#" + this.id + "  .iyo-nav-closer").on("mouseover mouseleave mouseenter mouseout",function() {		
+		var vis = ($("#" + map.sai.id + " .iyo-panel0 .iyo-box-show").length > 0);	
+		if (!vis)
+		{
+			$("#" + map.sai.id + "  .iyo-panel1").css("display","none");		
 		}	
 	});
 };	

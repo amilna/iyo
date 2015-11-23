@@ -13,8 +13,11 @@
 <div id="<?= $id ?>" class="iyo">
 	<div id="<?= $id ?>-iyo-map" class="iyo-map"></div>
 	<div class="iyo-panel0 noprint">
+		<div class="iyo-nav-closerl iyo-nav-closer noprint"></div>
+		<div class="iyo-nav-closert iyo-nav-closer noprint"></div>
+		<div class="iyo-nav-closerr iyo-nav-closer noprint"></div>
 		<div class="iyo-nav noprint">
-			<span class="iyo-nav-left"></span>
+			
 			<div class="iyo-nav-layers" title="<?= Yii::t("app","Layers") ?>"><i class="glyphicon glyphicon-th-list"></i></div>
 			<div class="iyo-nav-search" title="<?= Yii::t("app","Search") ?>"><i class="glyphicon glyphicon-search"></i></div>
 			<div class="iyo-nav-tools" title="<?= Yii::t("app","Tools") ?>"><i class="glyphicon glyphicon-th-large"></i></div>			

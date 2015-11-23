@@ -242,6 +242,34 @@
 	}
 }
 
+.iyo-nav-closerl,.iyo-nav-closerr {
+	height:38px;		
+	#background:yellow;
+	position:absolute;
+	margin-top:-13px;	
+}
+
+.iyo-nav-closert {
+	height:25px;		
+	margin-top:-10px;	
+	width:298px;	
+	#background:yellow;
+	position:absolute;
+	top:0px;
+}
+
+.iyo-nav-closerl {
+	left:0px;
+	width:15px;	
+	margin-left:-10px;
+}
+
+.iyo-nav-closerr {
+	right:0px;
+	width:20px;	
+	margin-right:0px;
+}
+
 .iyo-panel0 .iyo-nav,.iyo-layer-tools-more,.iyo-layer-tools-def {	
 	height:24px;
 }

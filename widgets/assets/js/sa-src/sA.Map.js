@@ -387,6 +387,16 @@ sA.Map.prototype.addLayer = function(lconf) {
 		var olayer = new ol.layer.Vector({name : lconf.name});
 		olayer.conf = lconf;
 		
+		if (sai.inArray(lconf.geomtype,['Point','MultiPoint']) >= 0 && !isjson)
+		{
+			var source = new ol.source.Cluster({
+				distance: (sai.isObj(lconf.clusterPix)?lconf.clusterPix:20),
+				source: source
+			});
+			
+			//console.log(lconf.name,'cluster',(sai.isObj(lconf.clusterPix)?lconf.clusterPix:20));
+		}
+		
 		var layer = new ol.layer.Vector({
 			name : lconf.name,
 			source : source,
@@ -1648,12 +1658,25 @@ sA.Map.prototype.getStyle = function(featureHighlight,sai) {
 	if (conf)
 	{		
 		if (sai.isObj(conf.rules))
-		{									
+		{												
+			
 			for (f=0;f<conf.rules.length;f++)
-			{
+			{				
 				
 				if (sai.isObj(conf.rules[f].filter))
-				{					
+				{										
+					var feature = featureHighlight[0];
+					if (sai.isObj(feature.get('features')))
+					{
+						var features = feature.get('features');						
+						if (features.length == 1)
+						{
+							feature = features[0];
+						}						
+					}
+					
+					var prop = feature.getProperties();
+					
 					var tesv = false;
 					var filter = conf.rules[f].filter.match(/^\(\[([a-z0-9_]+)\] (in||not in) \'(-?[0-9]+) - (-?[0-9]+)\'\)/);											
 					if (filter != null)
@@ -1679,13 +1702,12 @@ sA.Map.prototype.getStyle = function(featureHighlight,sai) {
 						var filter = tesf.match(/\[([a-z0-9_]+)\]/g);						
 					
 						if (filter != null)
-						{														
-							var prop = featureHighlight[0].getProperties();
+						{																					
 							var tesv = tesf.replace(/=/g,'==').replace(/ or /g,' || ').replace(/ and /g,' && ')+'';	
 							tesv = tesv.replace(/>==/g,'>=').replace(/<==/g,'<=')+'';	
 							for (var fl=0;fl<filter.length;fl++)
 							{
-								var val = "true";
+								var val = "false";
 								if (sai.isObj(prop[filter[fl].replace('[','').replace(']','')]))
 								{
 									val = prop[filter[fl].replace('[','').replace(']','')];								
@@ -1705,18 +1727,18 @@ sA.Map.prototype.getStyle = function(featureHighlight,sai) {
 					}
 					
 					if (evalv)
-					{												
+					{																		
 						style = readStyle(conf.rules[f]);													
 					}
 				
-				}														
-			}
+				}																		
 			
+			}			
+									
 			if (!style)
 			{								
 				style = readStyle(conf.rules[conf.rules.length-1]);													
 			}
-						
 																	
 		}
 	}
@@ -1763,7 +1785,8 @@ sA.Map.prototype.mkStyle = function(feature,layer,isHighlight,sai) {
 		return false;
 	}	
 	else
-	{		
+	{				
+		
 		var dstyle = sai.getStyle([feature,layer],sai);
 		var scale = sai.isObj(dstyle.scale)?(dstyle.scale+(sai.isObj(isHighlight)?0.3:0)):undefined;
 		var opacity = Math.min((sai.isObj(dstyle.opacity)?dstyle.opacity:1)+(sai.isObj(isHighlight)?0.3:0),1);	
@@ -1992,6 +2015,7 @@ sA.Map.prototype.mkStyle = function(feature,layer,isHighlight,sai) {
 			
 			oStyle = new ol.style.Style(styleopt);				
 		}
+				
 		
 		if (sai.isObj(feature.get('maxzoom')))
 		{
@@ -2000,7 +2024,8 @@ sA.Map.prototype.mkStyle = function(feature,layer,isHighlight,sai) {
 				oStyle = false;
 			}		
 		}	
-		
+	
+		//console.log(oStyle);
 		return oStyle;
 	}
 };
@@ -2071,15 +2096,24 @@ sA.Map.prototype.getUtfGridData = function(evt,isall) {
 	var feature = null;
 	var layer = null;
 	if (sai.isObj(sai.featureHighlight))
-	{														
+	{																
 		feature = sai.featureHighlight[0];		
+		if (sai.isObj(feature.get('features')))
+		{
+			var features = feature.get('features');
+			var afeature = features[0];		
+		}
+		else
+		{
+			var afeature = feature;		
+		}		
 		
-		if (sai.isObj(feature.getGeometry()))
+		if (sai.isObj(afeature.getGeometry()))
 		{			
-			var gtype = feature.getGeometry().getType();
+			var gtype = afeature.getGeometry().getType();
 			if (gtype == 'Point')
 			{
-				lonlat = ol.proj.transform(feature.getGeometry().getCoordinates(),
+				lonlat = ol.proj.transform(afeature.getGeometry().getCoordinates(),
 					"EPSG:3857", "EPSG:4326");			
 			}		
 		}		
@@ -2143,8 +2177,21 @@ sA.Map.prototype.getUtfGridData = function(evt,isall) {
 	
 	if (feature != null && sai.isObj(sai.featureHighlight))
 	{				
-		var prop = feature.getProperties();			
-		data.push([sai.featureHighlight[1],prop,feature]);				
+		if (sai.isObj(feature.get('features')))
+		{
+			var features = feature.get('features');
+			for (var f=0;f<features.length;f++)
+			{
+				var afeature = features[f];
+				var prop = afeature.getProperties();			
+				data.push([sai.featureHighlight[1],prop,feature]);				
+			}
+		}
+		else
+		{	
+			var prop = afeature.getProperties();			
+			data.push([sai.featureHighlight[1],prop,feature]);				
+		}
 	}
 	
 	return data;				
@@ -2155,7 +2202,7 @@ sA.Map.prototype.highlightFeature = function(feature,layer) {
 	if (!this.isObj(layer.conf))
 	{
 		return this.featureHighlight;
-	}				
+	}						
 	
 	this.featureHighlight = [feature,layer];		
 		
@@ -2180,8 +2227,7 @@ sA.Map.prototype.highlightFeature = function(feature,layer) {
 					{
 						var resStyle = sai.mkResStyle(this, resolution,sai);
 					}
-					
-					
+										
 					var dStyle = sai.mkStyle(this,layer,true,sai);
 					if (resStyle)
 					{
@@ -2194,12 +2240,13 @@ sA.Map.prototype.highlightFeature = function(feature,layer) {
 					}
 					
 					return styles;	
-			};
+			};		
 	
-	if (dstyle != [])
-	{
+	
+	//if (dstyle != [])
+	//{
 		feature.setStyle(dstyle);
-	}
+	//}
 	
 	return this.featureHighlight;
 };	

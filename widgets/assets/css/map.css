@@ -559,6 +559,13 @@ canvas.ol-unselectable {
 	width:200px;	
 }
 
+.iyo-popup-content {				
+	margin-top:10px;
+	max-height:200px;
+	overflow:auto;	
+	font-size:11px;
+}
+
 
 .iyo-map {
 	position:absolute;	

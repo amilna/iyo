@@ -90,15 +90,9 @@ sA.prototype.isObj = function(obj) {
 
 sA.prototype.toMoney = function(num,str_moneySym) {
 	var decimalSeparator = Number("1.2").toLocaleString().substr(1,1);
-
-	var amountWithCommas = num.toLocaleString(["id", "de-DE"]);
-	var arParts = String(amountWithCommas).split(decimalSeparator);
-	var intPart = arParts[0];
-		
-	var decPart = (arParts.length > 1 ? arParts[1] : "");
-	decPart = (decPart + "00").substr(0,2);
-	
-	return (this.isObj(str_moneySym)?str_moneySym+" ":"") + intPart + decimalSeparator + decPart;		
+	var thousandSeparator = decimalSeparator == '.'?',':'.';
+	var formated = parseFloat(num).toFixed(2).replace(/(\d)(?=(\d{3})+\.)/g, '$1'+thousandSeparator).replace(/(\.|,)(\d{2})$/g, decimalSeparator+'$2');	
+	return (this.isObj(str_moneySym)?str_moneySym+" ":"") + formated;		
 };
 	
 sA.prototype.inArray = function(obj,array) {

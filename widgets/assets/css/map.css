@@ -571,6 +571,13 @@ canvas.ol-unselectable {
 	font-family: Verdana,Arial,Helvetica,sans-serif;
 }
 
+.iyo-info h5,.iyo-popup-content h5 {	
+	width:100%;
+	background-color: #eaeaea;
+	padding:5px;	
+	border-radius: 2px;
+}
+
 .iyo-coordinate {				
 	float:left;	
 	padding-right:20px;

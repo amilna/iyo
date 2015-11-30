@@ -225,15 +225,51 @@ sA.Map = function(arrObj_options) {
 	for (var l=0;l<this.layers.length;l++)
 	{		
 		this.addLayer(this.layers[l]);				
-	}		
-		
+	}
+	
+	
+	var sai = this;
+	$("#" + sai.id +" .iyo-layer-tools-drag").removeClass("iyo-notool");
+	$("#" + sai.id +" .iyo-layer-tools-drag").addClass("iyo-tool");
+	$("#" + sai.id +" .iyo-layers").sortable(
+		{
+			items: ".iyo-layer",
+			handle: ".iyo-layer-tools-drag",
+			containment: 'parent',
+			start: function( event, ui ) 
+			{
+				var layid = $(ui.item).attr('id');						
+				$("#" + layid +" .iyo-layer-tools").css("display","block");		
+				$("#" + layid).addClass("iyo-layer-show");	
+				$("#" + layid +" .iyo-layer-tools-seemore").addClass("iyo-box-show");
+				$("#" + sai.id +" .iyo-layer-tools-drag").removeClass('iyo-box-show');
+				$("#" + layid +" .iyo-layer-tools-drag").addClass('iyo-box-show');
+				
+			},
+			stop: function( event, ui ) 
+			{
+				var layid = $(ui.item).attr('id');											
+				$("#" + layid +" .iyo-layer-tools").css("display","none");		
+				$("#" + layid).removeClass("iyo-layer-show");
+				$("#" + layid +" .iyo-layer-tools-seemore").removeClass("iyo-box-show");
+				
+				$("#" + sai.id +" .iyo-layer-tools-drag").removeClass('iyo-box-show');
+			},
+			update : function( event, ui )
+				{
+					var layid = $(ui.item).attr('id');						
+					sai.setLayerPos(layid);																
+				}
+		}
+	);									
+	
 	this.mapOCkey = this.map.on("click", function(evt) {
 		var sai = this.sai;
 		sai.mapOnMouseClick(evt);    
 	});				
 	
 	
-	this.initUi();
+	this.initUi();		
 	
 	if (this.isObj(options.callBack))
 	{						
@@ -244,6 +280,127 @@ sA.Map = function(arrObj_options) {
 sA.Map.prototype = Object.create(sA.prototype);
 sA.Map.prototype.constructor = sA.Map;
 
+
+sA.Map.prototype.setLayerPos = function(layid,toidx) {							
+	if (layid.substr(0,6) != 'layer_')
+	{
+		layid = "layer_"+layid.toLowerCase().replace(/[^a-zA-Z0-9]/g,"_");	
+	}
+	
+	var sai = this;	
+	var leg = $("#" + sai.id +" .iyo-layers").sortable('toArray');			
+	var legs = leg.reverse();		
+	
+	if (typeof toidx != 'undefined')
+	{				
+		$( "#"+layid ).insertAfter( $( "#"+leg[toidx] ) );	
+		$("#" + sai.id +" .iyo-layers").sortable( "refresh" );	
+	}
+	else
+	{
+		toidx = legs.indexOf(layid);
+	}
+	
+	var fromidx = null;
+	var imgfr = 0;
+	var imgal = 0;						
+	var imgto = 0;
+	var imgpl = 0;						
+	for (var l=0;l<sai.layers.length;l++)
+	{																									
+		if (l == toidx && sai.layers[l]['type'] == 'rastertile' && typeof sai.layers[l]['epsgs'] != 'undefined')
+		{								
+			imgpl += sai.layers[l]['epsgs'].length-1;
+		}		
+		
+		if (fromidx == null && sai.layers[l]['type'] == 'rastertile' && typeof sai.layers[l]['epsgs'] != 'undefined')
+		{
+			imgfr += sai.layers[l]['epsgs'].length-1;
+		}														
+		
+		if (l < toidx && sai.layers[l]['type'] == 'rastertile' && typeof sai.layers[l]['epsgs'] != 'undefined')
+		{
+			imgto += sai.layers[l]['epsgs'].length-1;
+		}							
+		
+		if (sai.layers[l]['type'] == 'rastertile' && typeof sai.layers[l]['epsgs'] != 'undefined')
+		{
+			imgal += sai.layers[l]['epsgs'].length-1;
+		}							
+		
+		var nlayid = "layer_"+sai.layers[l]['name'].toLowerCase().replace(/[^a-zA-Z0-9]/g,"_");
+		if (nlayid == layid)
+		{
+			fromidx = l;								
+		}
+	}						
+		
+	if (fromidx != null)						
+	{																				
+		if (toidx > fromidx)
+		{
+			imgto += imgpl;	
+		}
+		
+		var minidx = sai.baseMaps.length;
+		var maxidx = minidx+sai.layers.length-1+imgal;																				
+		
+		var layers = sai.map.getLayers().getArray();
+		var layer = null;
+		for (var l=0;l<layers.length;l++)
+		{
+			var lyr = layers[l];
+			if (sai.isObj(lyr.get('name')))
+			{						
+				var nlayid = "layer_"+lyr.conf['name'].toLowerCase().replace(/[^a-zA-Z0-9]/g,"_");
+				if (nlayid == layid && layer == null)
+				{										
+					layer = lyr;																														
+				}
+			}
+		}																					
+		
+		if (layer!= null)
+		{
+			sai.arrayMove(sai.layers,fromidx,toidx);
+			if (layer.conf['type'] == 'rastertile' && typeof layer.conf['epsgs'] != 'undefined')
+			{
+				var epsgs = layer.conf['epsgs'];	
+				
+				if (toidx > fromidx)
+				{										
+					imgto -= (epsgs.length-1);										
+				}																											
+				
+				var leps = [];
+				for (var e=epsgs.length-1;e>=0;e--)
+				{																				
+					var layep = sai.map.getLayers().removeAt(fromidx+minidx+imgfr-(epsgs.length-1));										
+					leps.push(layep);										
+				}					
+				
+				for (var e=leps.length-1;e>=0;e--)
+				{										
+					var layep = leps[e];
+					sai.map.getLayers().insertAt(Math.min(Math.max(toidx+minidx+imgto,minidx),maxidx), layep);																																				
+				}
+			}
+			else
+			{
+				var layep = sai.map.getLayers().removeAt(fromidx+minidx+imgfr);
+				sai.map.getLayers().insertAt(Math.min(Math.max(toidx+minidx+imgto,minidx),maxidx), layep);																	
+			}
+											
+		}
+		else
+		{
+			$("#" + sai.id +" .iyo-layers").sortable("cancel");
+		}
+		
+	}	
+	//console.log(legs);
+	//console.log(sai.map.getLayers().getArray());
+};
 
 sA.Map.prototype.addBaseMap = function() {	
 	
@@ -696,7 +853,12 @@ sA.Map.prototype.initUiLegend = function(layer) {
 					
 					if (this.inArray(legendType,['Polygon','MultiPolygon']) >= 0)
 					{				
-						$("#" + layid+"_class_"+r+ " .iyo-layer-class-symbol svg rect").css({"stroke":stroke,"stroke-dasharray":strokeDasharray,"stroke-opacity":parseFloat(strokeOpacity),"stroke-width":parseInt(strokeWidth)*(160/ratw)});
+						$("#" + layid+"_class_"+r+ " .iyo-layer-class-symbol svg rect").css({"stroke":stroke,"stroke-dasharray":strokeDasharray,"stroke-opacity":parseFloat(strokeOpacity)+"","stroke-width":parseInt(strokeWidth)*(160/ratw)});
+						if (lconf.name == 'Asumsi Area Terbakar')
+						{
+							//$("#" + layid+"_class_"+r+ " .iyo-layer-class-symbol svg rect").css("stroke-opacity",parseFloat(strokeOpacity)+"");
+							console.log(layid,parseFloat(strokeOpacity),strokeOpacity,rule.lineSymbolizer,rule.style,$("#" + layid+"_class_"+r+ " .iyo-layer-class-symbol svg rect").css("stroke-opacity"));	
+						}
 					}
 					else if (this.inArray(legendType,['LineString','MultiLineString']) >= 0)
 					{									
@@ -859,7 +1021,7 @@ sA.Map.prototype.initUiLayer = function(layer) {
 		$("#" + layid).removeClass("iyo-layer-show");
 		$("#" + layid +" .iyo-layer-tools-seemore").removeClass("iyo-box-show");
 		
-		var act = $("#" + map.sai.id + " .iyo-layer-tools").find(".iyo-layer-tools-editor.iyo-box-show");
+		var act = $("#" + map.sai.id + " .iyo-layer-tools").find(".iyo-layer-tools-editor.iyo-box-show,.iyo-layer-tools-drag.iyo-box-show");
 		
 		if (act.length > 0)
 		{
@@ -2419,6 +2581,7 @@ sA.Map.prototype.mapOnMouseMove = function(evt) {
 			var conf = (sai.isObj(ugdata[0].conf)?ugdata[0].conf:false);
 			if (conf)
 			{
+				text += "<h5>"+conf.name+"</h5>";
 				var mkutf = [];
 				var mkutfname = [];
 				for (key in conf)
@@ -2457,11 +2620,10 @@ sA.Map.prototype.mapOnMouseMove = function(evt) {
 								}	
 							}
 							
-							var otext = "<strong>" + field.alias + "</strong> " + str;
-							//console.log(textf,textd,otext);
+							var otext = "<strong>" + field.alias + "</strong> " + str;							
 							if (textf.indexOf(otext) < 0 && textd.indexOf(otext) < 0)
-							{
-								text += (text == ""?"":", ") + otext;	
+							{															
+								text += (text == "<h5>"+conf.name+"</h5>"?"":", ") + otext;	
 							}
 						}																					
 					}						
@@ -2591,7 +2753,7 @@ sA.Map.prototype.mapOnMouseClick = function(evt) {
 			var conf = (sai.isObj(ugdata[0].conf)?ugdata[0].conf:false);
 			if (conf)
 			{																										
-				
+				text += "<h5>"+conf.name+"</h5>";	
 				if (sai.isObj(sai.draw))
 				{
 					
@@ -2752,8 +2914,8 @@ sA.Map.prototype.mapOnMouseClick = function(evt) {
 											str = '<a href="'+url+'" target="blank">' + str + '</a>';
 											var otext = "<strong>" + field.alias + "</strong> " + str;										
 											if (textf.indexOf(otext) < 0 && textd.indexOf(otext) < 0)
-											{
-												text += (text == ""?"":", ") + otext;
+											{												
+												text += (text == "<h5>"+conf.name+"</h5>"?"":", ") + otext;	
 											}	
 										}										
 									}
@@ -2762,7 +2924,7 @@ sA.Map.prototype.mapOnMouseClick = function(evt) {
 										var otext = "<strong>" + field.alias + "</strong> " + str;										
 										if (textf.indexOf(otext) < 0 && textd.indexOf(otext) < 0)
 										{
-											text += (text == ""?"":", ") + otext;	
+											text += (text == "<h5>"+conf.name+"</h5>"?"":", ") + otext;	
 										}										
 									}	
 								}

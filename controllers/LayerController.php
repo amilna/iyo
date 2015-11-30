@@ -234,6 +234,7 @@ class LayerController extends Controller
 			$query->select(["{{%iyo_data}}.id","concat({{%iyo_data}}.title,' (',{{%iyo_data}}.description,')') AS text"])				
 				->leftJoin($userClass::tableName(),$userClass::tableName().".id = {{%iyo_data}}.id")
 				->leftJoin("{{%profile}}","{{%profile}}.user_id = ".$userClass::tableName().".id")
+				->andwhere("{{%iyo_data}}.isdel = 0")
 				->andwhere("lower(concat(".$userClass::tableName().".username,{{%profile}}.name,{{%iyo_data}}.title,{{%iyo_data}}.description,{{%iyo_data}}.remarks,{{%iyo_data}}.metadata)) LIKE '%" . strtolower($search) ."%'")
 				//->andwhere(SiteNode::tableName().".owner_id is null")
 				->limit(20);			

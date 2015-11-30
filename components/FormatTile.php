@@ -21,6 +21,7 @@ class FormatTile extends Component
 	private $x = false;
 	private $y = false;
 	private $xml = false;
+	private $bbox = false;
 	
 	private $tileDir = null;
 	private $tileServer = null; /* webpy or nodejs or apache */
@@ -47,6 +48,8 @@ class FormatTile extends Component
 		$this->ipaddress = $params[11];
 		$this->sslKey = $params[12];		
 		
+		$this->bbox = $params[13];
+		
 		preg_match('/dbname\=(.*)?/', $dsn, $matches);			
 		$this->dbname = $matches[1];
 		$this->prefix = $tablePrefix;						
@@ -68,6 +71,7 @@ class FormatTile extends Component
 		$x = $this->x;				
 		$y = $this->y;				
 		$xml = $this->xml;		
+		$bbox = $this->bbox;		
 		
 		$time = time();		
 		$tileURL = $this->tileURL;
@@ -103,14 +107,19 @@ class FormatTile extends Component
 						if ($layer['datatype'] == 6)
 						{
 							$metadata = json_decode($layer['metadata'],true);
-							$url = "http".(!empty($this->sslKey)?"s":"")."://".(!empty($this->proxyhosts)?$this->proxyhosts[$np]:$this->ipaddress.":".$this->ports[$np]).$tileURL."/".$metadata['tilename'];												
+							$url = "http".(!empty($this->sslKey)?"s":"")."://".(!empty($this->proxyhosts)?$this->proxyhosts[$np]:$this->ipaddress.":".$this->ports[$np]).$tileURL."/".$metadata['tilename']."_0EPSG0";												
 						}
 						else
 						{
 							$url = "http".(!empty($this->sslKey)?"s":"")."://".(!empty($this->proxyhosts)?$this->proxyhosts[$np]:$this->ipaddress.":".$this->ports[$np]).$tileURL."/iyo".$layer['id']."_".preg_replace('/[^a-zA-Z0-9]/','_',strtolower($layer['title']));												
 						}
 						
-						if ($z && $x && $y)
+						if ($bbox)
+						{
+							$url .= "?r=".$time."&b=".$bbox.($xml?"&x=".$time:"");	
+							$urls = [$url];
+						}
+						elseif ($z && $x && $y)
 						{
 							$urls = [];
 							foreach (['json','png'] as $type)
@@ -128,6 +137,8 @@ class FormatTile extends Component
 							$url .= "?r=".$time.($xml?"&x=".$time:"");	
 							$urls = [$url];
 						}
+						
+						//print_r($urls);
 						
 						foreach ($urls as $url)
 						{

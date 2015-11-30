@@ -5,6 +5,7 @@ import sys, getopt, os, json, mapnik, tempfile, urllib2, cPickle, shutil, zlib
 import math
 import sqlite3 as lite
 import re
+import glob
 
 from subprocess import Popen, PIPE
 from xml.dom import minidom
@@ -316,26 +317,67 @@ class Tilep:
 
 class clear_tile:
 	def GET(self, tilename):				
-		qs = web.input(r='',x='',q='')								
+		qs = web.input(r='',x='',q='',b='')								
 		
 		tilep = Tilep()
 				
-		if qs.r != '':			
-			from subprocess import call
-			call(["rm","-R",tiledir+"/"+tilename])
-			dbfilet = tilep.getDb(tilename)
-			if dbfilet :
-				call(["rm",dbfilet])
+		if qs.r != '' :						
+			adir = os.path.dirname(os.path.realpath(__file__))+'/dbs/'					
+			dst = adir+tilename+'.db'			
+			itesl = None			
+			if not os.path.exists(dst):
+				dbfilets = [];
+				itesl = re.match(r"([a-zA-Z0-9_\.]+)_0EPSG0", tilename)								
+				if itesl != None:
+					tilename = tilename.replace('_0EPSG0','')					
+					os.chdir(adir)
+					for file in glob.glob(tilename+"_*.db"):						
+						dbfilets.append(adir+file)
+					
+			else:				
+				dbfilets = [adir+tilename+'.db']
+			
+			ndb = len(dbfilets)																	
+			
+			for d in range(0, ndb): 
+				dbfilet = dbfilets[d]			
+				if qs.b == '':			
+					from subprocess import call
+					call(["rm","-R",tiledir+"/"+tilename])				
+					if dbfilet :
+						call(["rm",dbfilet])
+								
+				else :						
+					boxs = qs.b.split(",")
+					minx = float(boxs[0])		
+					miny = float(boxs[1])
+					maxx = float(boxs[2])
+					maxy = float(boxs[3])										
+					
+					if dbfilet and dbfilet == '/home/sman/domains/web.sman/public_html/apps/vendor/amilna/yii2-iyo/components/dbs/citra_januari_2014_32747.db':
+						cont = lite.connect(dbfilet)
+						curt = cont.cursor()								
+						sql = "SELECT * from tiles WHERE ((maxx >= ? AND maxy >= ? AND  minx <= ? AND miny <= ?) OR (minx <= ? AND miny <= ? AND maxx >= ? AND maxy >= ?))"																					
+						curt.execute(sql,[minx,miny,maxx,maxy,minx,miny,maxx,maxy])						
+						rows = curt.fetchall()
+						sql = "DELETE from tiles WHERE ((maxx >= ? AND maxy >= ? AND  minx <= ? AND miny <= ?) OR (minx <= ? AND miny <= ? AND maxx >= ? AND maxy >= ?))"																					
+						curt.execute(sql,[minx,miny,maxx,maxy,minx,miny,maxx,maxy])												
+						cont.commit()
+						curt.close()												
+						ps = ps
 						
 		isforce = True
 		if qs.x == '':
 			isforce = False
-			
-		xmlstr = tilep.getXml(tilename,isforce,qs.q)		
+		
+		xmlstr = True
+		if itesl == None:				
+			xmlstr = tilep.getXml(tilename,isforce,qs.q)		
 		
 		web.header("Access-Control-Allow-Origin", "*")
 		web.header("Content-Type", "text/plain")
-		if xmlstr:				
+		if xmlstr:			
+			return xmlstr	
 			return '{"tilename":"'+tilename+'","status":true}'			
 		else :
 			return '{"tilename":"'+tilename+'","status":false}'	

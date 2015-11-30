@@ -244,7 +244,7 @@ class Tilep extends Component
 
 	}
 	
-	public function clearTile($id = false, $isdata = false, $xml = false, $z = false, $x = false, $y = false)
+	public function clearTile($id = false, $isdata = false, $xml = false, $bbox = false, $z = false, $x = false, $y = false)
     {	
 		$module = Yii::$app->getModule("iyo");		
 		$tileDir = \Yii::getAlias($module->tileDir);
@@ -261,7 +261,7 @@ class Tilep extends Component
 		$username = Yii::$app->db->username;
 		$password = Yii::$app->db->password;					
 		
-		$param = $tileURL.":".$id.":".$isdata.":".$z.":".$x.":".$y.":".$xml.":".$tileDir.":".$tileServer.":".$proxyhosts.":".$ports.":".$ipaddress.":".$sslKey;
+		$param = $tileURL.":".$id.":".$isdata.":".$z.":".$x.":".$y.":".$xml.":".$tileDir.":".$tileServer.":".$proxyhosts.":".$ports.":".$ipaddress.":".$sslKey.":".$bbox;
 		$path = \Yii::getAlias("@amilna/iyo/components");			
 		$cmd = $path."/exec -action='clearTile' -dsn='".$dsn."' -tablePrefix='".$tablePrefix."' -username='".$username."' -password='".$password."' -param='".$param."'";
 		//die($cmd);			

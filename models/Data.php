@@ -195,14 +195,69 @@ class Data extends \yii\db\ActiveRecord
 			$cmd = $execFile." -action='import' -dsn='".$dsn."' -tablePrefix='".$tablePrefix."' -username='".$username."' -password='".$password."' -param='".$param."'";
 			//die($cmd);			
 			$process = new Process($cmd);
-			
-			$clear = \amilna\iyo\components\Tilep::clearTile($this->id,true,true);
+						
 			
 			$sql = "UPDATE ".Data::tableName()." 
 				SET pid = ".$process->getPid()."
 				WHERE id = ".$this->id;
 				
 			$res = $this->db->createCommand($sql)->execute();			
+			
+			
+			/* generate layer if raster */
+			if ($this->type == 6)
+			{
+				$lay = Layer::find()->where(['data_id'=>$this->id])->one();
+				if (!$lay)
+				{
+					$lay = new Layer();	
+					$lay->data_id = $this->id;
+					$lay->title = $this->title;
+					$lay->description = $this->description;
+					$lay->remarks = $this->remarks;
+					$lay->config = '{}';
+					$lay->tags = $this->tags;
+					$lay->author_id = Yii::$app->user->id;
+					$lay->type = 0;
+					$lay->status = 1;
+					$lay->isdel = 0;
+					$lay->save();
+				}
+				
+				$path = $uploadDir;
+				$path = $path."/geos/";	
+								
+				$metadata = json_decode($this->metadata,true);		
+				$filename = isset($metadata["srcfile"])?$metadata["srcfile"]:false;														
+				if ($filename)
+				{
+					$filename = str_replace('%20',' ',$filename);
+					$file = $path.$filename;
+			
+					$gdalinfo = shell_exec("gdalinfo '".$file."'");						
+					preg_match('/Lower Left([ ]+)\(([ ]+)?(-?[0-9\.]+),([ ]+)?(-?[0-9\.]+)\)/', $gdalinfo, $min);		
+					preg_match('/Upper Right([ ]+)\(([ ]+)?(-?[0-9\.]+),([ ]+)?(-?[0-9\.]+)\)/', $gdalinfo, $max);
+					preg_match('/\n    AUTHORITY\[\"EPSG\",\"(\d+)\"\]/', $gdalinfo, $epsg);																
+					
+					if (isset($min[3]) && isset($min[5]) && isset($max[3]) && isset($max[5]))
+					{						
+						if (!isset($epsg[1]))
+						{
+							$epsg[1] = '4326';
+						}
+						$bbox = $min[3].','.$min[5].','.$max[3].','.$max[5];						
+						
+						$bbox = $this->db->createCommand('SELECT ST_Extent(ST_Transform(ST_MakeEnvelope('.$bbox.','.$epsg[1].'),4326)) as bbox')->queryScalar();
+						$bbox = preg_replace('/BOX\((-?[0-9\.]+) (-?[0-9\.]+),(-?[0-9\.]+) (-?[0-9\.]+)\)/','$1,$2,$3,$4',$bbox);						
+						
+						$clear = \amilna\iyo\components\Tilep::clearTile($this->id,true,true,$bbox);
+					}	
+				}	
+			}
+			else
+			{
+				$clear = \amilna\iyo\components\Tilep::clearTile($this->id,true,true);
+			}
 			
 		}
 		

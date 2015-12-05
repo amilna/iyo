@@ -130,8 +130,8 @@ class Tilep:
 		y = int((1.0 - math.log(math.tan(lat_rad) + (1 / math.cos(lat_rad))) / math.pi) / 2.0 * n)
 		return [x, y]
 	def getBbox(self, x, y, z):		
-		s = self.getLonLat(x, y, z);
-		e = self.getLonLat(x+1, y+1, z);										
+		s = self.getLonLat(x, y, z)
+		e = self.getLonLat(x+1, y+1, z)
 		if (s[0] > 360):
 			s[0] = (s[0]%360)+(s[0]-math.floor(s[0]))
 			e[0] = (e[0]%360)+(e[0]-math.floor(e[0]))		
@@ -191,7 +191,7 @@ class Tilep:
 		
 		return xmlstr			
 	def getDb(self, dbname, isxml=False):
-		adir = os.path.dirname(os.path.realpath(__file__));	
+		adir = os.path.dirname(os.path.realpath(__file__))	
 		if not isxml:
 			sub = '/dbs'
 			csql = 'CREATE TABLE IF NOT EXISTS tiles (z INT NOT NULL, x INT NOT NULL, y INT NOT NULL, minx REAL NOT NULL, miny REAL NOT NULL, maxx REAL NOT NULL, maxy REAL NOT NULL, src BLOB NOT NULL , sffx TEXT NOT NULL, q TEXT )'
@@ -205,8 +205,8 @@ class Tilep:
 			except:
 				pass
 		
-		src = adir+'/tile.db';
-		dst = adir+sub+'/'+dbname+'.db';
+		src = adir+'/tile.db'
+		dst = adir+sub+'/'+dbname+'.db'
 		if not os.path.exists(dst):
 			copyfile(src, dst)				
 			if os.path.exists(dst):				
@@ -326,7 +326,7 @@ class clear_tile:
 			dst = adir+tilename+'.db'			
 			itesl = None			
 			if not os.path.exists(dst):
-				dbfilets = [];
+				dbfilets = []
 				itesl = re.match(r"([a-zA-Z0-9_\.]+)_0EPSG0", tilename)								
 				if itesl != None:
 					tilename = tilename.replace('_0EPSG0','')					
@@ -353,13 +353,10 @@ class clear_tile:
 					miny = float(boxs[1])
 					maxx = float(boxs[2])
 					maxy = float(boxs[3])										
-					
-					if dbfilet and dbfilet == '/home/sman/domains/web.sman/public_html/apps/vendor/amilna/yii2-iyo/components/dbs/citra_januari_2014_32747.db':
+										
+					if dbfilet :
 						cont = lite.connect(dbfilet)
-						curt = cont.cursor()								
-						sql = "SELECT * from tiles WHERE ((maxx >= ? AND maxy >= ? AND  minx <= ? AND miny <= ?) OR (minx <= ? AND miny <= ? AND maxx >= ? AND maxy >= ?))"																					
-						curt.execute(sql,[minx,miny,maxx,maxy,minx,miny,maxx,maxy])						
-						rows = curt.fetchall()
+						curt = cont.cursor()														
 						sql = "DELETE from tiles WHERE ((maxx >= ? AND maxy >= ? AND  minx <= ? AND miny <= ?) OR (minx <= ? AND miny <= ? AND maxx >= ? AND maxy >= ?))"																					
 						curt.execute(sql,[minx,miny,maxx,maxy,minx,miny,maxx,maxy])												
 						cont.commit()
@@ -376,8 +373,7 @@ class clear_tile:
 		
 		web.header("Access-Control-Allow-Origin", "*")
 		web.header("Content-Type", "text/plain")
-		if xmlstr:			
-			return xmlstr	
+		if xmlstr:						
 			return '{"tilename":"'+tilename+'","status":true}'			
 		else :
 			return '{"tilename":"'+tilename+'","status":false}'	
@@ -551,7 +547,7 @@ class get_image:
 		
 		global cached_maps
 		
-		sffx = 'png';		
+		sffx = 'png'
 		epsg = int(epsg)
 		z = int(z)
 		x = int(x)

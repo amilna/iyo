@@ -22,7 +22,8 @@ class DefaultController extends Controller
 		$path = \Yii::getAlias($uploadDir);	
 		$url = \Yii::getAlias($uploadURL);	
 		
-		$files = glob($path.$pattern);												
+		$files = glob($path.$pattern);
+		
 		if (count($files) >= 1)
 		{
 			$file = $files[0];

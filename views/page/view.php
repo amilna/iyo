@@ -59,7 +59,34 @@ $this->beginBlock('STATIC_SCRIPTS');
 				$froms = [];
 				foreach ($fromt as $n=>$f)
 				{
-					$froms[] = is_numeric($f)?'{{%iyo_data_'.$f.'}} as t'.($n==0?'':$n):$f.' as t'.($n==0?'':$n);							
+					$allow = true;
+					if (!is_numeric($f))
+					{
+						preg_match_all('/from ([a-zA-Z0-9_\{\}\%]+)/i',$f,$errs);								
+						if (count($errs[0]) > 0)
+						{		
+							for ($e=0;$e<count($errs[0]);$e++)
+							{
+								$tb = $errs[1][$e];										
+								if (preg_replace('/^{{%iyo_data_(\d+)}}$/i','',$tb) == $tb)
+								{																						
+									$allow = false;
+								}																		
+							}	
+						}	
+						else
+						{
+							if (preg_replace('/^{{%iyo_data_(\d+)}}$/i','',$f) == $f)
+							{										
+								$allow = false;
+							}
+						}																
+					}																					
+					
+					if ($allow)
+					{
+						$froms[] = is_numeric($f)?'{{%iyo_data_'.$f.'}} as t'.($n==0?'':$n):$f.' as t'.($n==0?'':$n);							
+					}					
 				}
 								
 				$query = new Query;
@@ -70,7 +97,34 @@ $this->beginBlock('STATIC_SCRIPTS');
 				{
 					foreach ($json['leftJoins'] as $lj)
 					{
-						$query->leftJoin(is_numeric($lj['table'])?'{{%iyo_data_'.$lj['table'].'}} as j'.$lj['table']:$lj['table'],$lj['on'],$lj['params']);
+						$allow = true;
+						if (!is_numeric($lj['table']))
+						{
+							preg_match_all('/from ([a-zA-Z0-9_\{\}\%]+)/i',$lj['table'],$errs);									
+							if (count($errs[0]) > 0)
+							{		
+								for ($e=0;$e<count($errs[0]);$e++)
+								{
+									$tb = $errs[1][$e];
+									if (preg_replace('/^{{%iyo_data_(\d+)}}$/i','',$tb) == $tb)
+									{
+										$allow = false;
+									}								
+								}	
+							}	
+							else
+							{
+								if (preg_replace('/^{{%iyo_data_(\d+)}}$/i','',$lj['table']) == $lj['table'])
+								{
+									$allow = false;
+								}
+							}								
+						}
+						
+						if ($allow)
+						{								
+							$query->leftJoin(is_numeric($lj['table'])?'{{%iyo_data_'.$lj['table'].'}} as j'.$lj['table']:$lj['table'],$lj['on'],$lj['params']);
+						}							
 					}
 				}	
 				
@@ -94,7 +148,12 @@ $this->beginBlock('STATIC_SCRIPTS');
 					$query->limit($json['limit']);
 				}
 				
-				$rows = $query->all();			
+				try {
+					$rows = $query->all();									
+				} catch (\yii\db\Exception $e) {
+					$rows = [];	
+				}	
+				
 				$dataJSON = json_encode($rows);			
 				
 				echo $var.' = '.$dataJSON.';';				

@@ -189,7 +189,7 @@ class Data extends \yii\db\ActiveRecord
 			$username = $this->db->username;
 			$password = $this->db->password;				
 			
-			$param = $uploadDir.":".$tileDir.":".$geom_col.":".$this->id.":".Yii::$app->user->id;
+			$param = $uploadDir.":".$tileDir.":".$geom_col.":".$this->id.":".Yii::$app->user->id.":".$module->postgis;
 			$path = \Yii::getAlias("@amilna/iyo/components");			
 			$execFile = \Yii::getAlias($module->execFile);			
 			$cmd = $execFile." -action='import' -dsn='".$dsn."' -tablePrefix='".$tablePrefix."' -username='".$username."' -password='".$password."' -param='".$param."'";

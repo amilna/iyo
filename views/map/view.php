@@ -30,7 +30,7 @@
 		if ($(".iyo").length)
 		{			
 			var newHeight = $(window).height()-(headerHeight+footerHeight);						
-			$(".container-fluid,section.content").css("padding",0);			
+			$(".content-wrapper .container-fluid,section.content").css("padding",0);		
 			$(".iyo").css("height",newHeight);			
 		}
 				

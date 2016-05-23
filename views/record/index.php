@@ -77,13 +77,6 @@ $labels = $data->attributeLabels();
 		}
     ?>
 
-
-    <p>
-        <?= Html::a(Yii::t('app', 'Create {modelClass}', [
-    'modelClass' => Yii::t('app', 'Record'),
-]), ['create','data'=>$searchModel::$dataId], ['class' => 'btn btn-success']) ?>
-    </p>
-
     <?= GridView::widget([
         'dataProvider' => $dataProvider,
         
@@ -96,20 +89,30 @@ $labels = $data->attributeLabels();
 		'striped' => true,
 		'condensed' => true,
 		'responsive' => true,
+		'responsiveWrap' => false,
 		'hover' => true,
 		'showPageSummary' => true,
 		'pageSummaryRowOptions'=>['class'=>'kv-page-summary','style'=>'background-color: #fdfdfd'],
 		'tableOptions'=>["style"=>"margin-bottom:100px;"],
 		'panel' => [
 			'type' => GridView::TYPE_DEFAULT,
-			'heading' => false,
-		],
-		'toolbar' => [
-			['content'=>				
-				Html::a('<i class="glyphicon glyphicon-repeat"></i>', ['index','data'=>$data->id], ['data-pjax'=>false, 'class' => 'btn btn-default', 'title'=>Yii::t('app', 'Reset Grid')])
+			'heading' => '<i class="glyphicon glyphicon-th-list"></i>  '.Yii::t('app', 'Record'),			
+			'before'=>Html::a(
+					'<i class="glyphicon glyphicon-plus"></i> '.Yii::t('app', 'Create'),
+					['create','data'=>$searchModel::$dataId], 
+					[	'class' => 'btn btn-success', 
+						'title'=>Yii::t('app', 'Create {modelClass}', [
+							'modelClass' => Yii::t('app','Record'),
+						])
+					]
+				).' <em style="margin:10px;"><small>'.Yii::t('app', 'Type in column input below to filter, or click column title to sort').'</small></em>',
+		],				
+		'toolbar' => [			
+			['content'=>								
+				Html::a('<i class="glyphicon glyphicon-repeat"></i>', ['index'], ['data-pjax'=>true, 'class' => 'btn btn-default', 'title'=>Yii::t('app', 'Reset Grid')])
 			],
 			'{export}',
-			'{toggleData}'
+			//'{toggleData}'
 		],
 		'beforeHeader'=>[
 			[
@@ -123,8 +126,8 @@ $labels = $data->attributeLabels();
 			]
 		],
 		'floatHeader' => true,		
-		
-		/* uncomment to use megeer some columns
+		'floatHeaderOptions'=>['position'=>'absolute','top'=>50],
+		/*uncomment to use megeer some columns
         'mergeColumns' => ['Column 1','Column 2','Column 3'],
         'type'=>'firstrow', // or use 'simple'
         */

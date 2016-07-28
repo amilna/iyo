@@ -80,7 +80,19 @@ $this->params['breadcrumbs'][] = $this->title;
             'title',
             'description',
             'remarks:ntext',
-            'metadata:ntext',
+            [				
+				'attribute'=>'metadata',				
+				'format'=>'raw',
+				'value'=>function($data){																			
+					$colnames = '';
+					$mcols = json_decode($data->metadata);												
+					foreach ($mcols->columns as $mcol)
+					{						
+						$colnames .= ($colnames == ''?'<a>':', <a>').$mcol->name.'</a> <small>'.$mcol->type.' '.$mcol->options.'</small>';
+					}
+					return $colnames;										
+				},				
+			],
             'tags',
             // 'author_id',
              [				

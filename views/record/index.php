@@ -22,6 +22,35 @@ $text .= ($text == ''?'':'. ').$data->remarks;
 $labels = $data->attributeLabels();
 ?>
 
+<?php 
+	// echo $this->render('_search', ['model' => $searchModel]);        
+	$colnames = '';
+	$columns = $searchModel->rules()[0][0];
+	
+	if(($key = array_search("term", $columns)) !== false) {
+		unset($columns[$key]);
+	}
+	
+	if(($key = array_search("gid", $columns)) !== false) {
+		unset($columns[$key]);
+	}
+	
+	$cols = [];
+	$mcols = json_decode($data->metadata);
+	$n = 0;
+			
+	foreach ($mcols->columns as $mcol)
+	{
+		if ($n < 5 && in_array($mcol->name,$columns))
+		{								
+			$cols[] = $mcol->name;
+			$n += 1;	
+		}
+		$colnames .= ($colnames == ''?'<a>':', <a>').$mcol->name.'</a> <small>'.$mcol->type.' '.$mcol->options.'</small>';
+	}
+?>
+
+
 <div class="data-view">
 
     <h1><?= Html::encode($this->title) ?></h1>
@@ -29,7 +58,7 @@ $labels = $data->attributeLabels();
     <p>                
         <?= $text ?>
     </p>
-    <div class="well"><?= $data->metadata ?></div>    
+    <div class="well"><?= $colnames ?></div>      
     <div class="alert"><?= '<b>'.$labels['type'].'</b> '.$data->itemAlias('geomtype',$data->type) .
         ' <b>'.$labels['srid'].'</b> '.$data->srid .        
         ' <b>'.$labels['tags'].'</b> '.$data->tags         

@@ -80,11 +80,14 @@ class RecordController extends Controller
 				{	
 					array_push($model,$obj);
 				}
-			}					
+			}		
+			header("Access-Control-Allow-Origin: *");
+			header("Access-Control-Expose-Headers: X-Pagination-Per-Page,X-Pagination-Current-Page,X-Pagination-Page-Count,X-Pagination-Total-Count,Content-Type,Location");																
 			return \yii\helpers\Json::encode($model);
 		}
 		elseif ($format == 'geojson')
 		{									
+			header("Access-Control-Allow-Origin: *");
 			return \yii\helpers\Json::encode(Record::asGeojson($dataProvider->getModels()));	
 		}
 		else
@@ -187,11 +190,17 @@ class RecordController extends Controller
 			return $this->redirect(['//iyo/data/index']);
 		}
 		$model = $this->findModel($data,$id);        
-        $model->isdel = 1;
-        $model->save();
-        //$model->delete(); //this will true delete
+		if (isset($model->isdel))
+		{
+			$model->isdel = 1;
+			$model->save();
+		}
+		else
+		{
+			$model->delete(); //this will true delete
+		}
         
-        if ($format='json')
+        if ($format=='json')
         {
 			return json_encode(['status'=>true]);	
 		}
@@ -225,17 +234,17 @@ class RecordController extends Controller
 	 */
 	public function beforeAction($action)
 	{            
-		if ($action == 'rest') {
-			Yii::$app->controller->enableCsrfValidation = false;
-		}
+		if ($action->id == 'rest') {
+			header("Access-Control-Allow-Origin: *");
+			$this->enableCsrfValidation = false;
+		}		
 
 		return parent::beforeAction($action);
 	}
     
-    public function actionRest($data = false,$id = null)
+    public function actionRest($data = false,$id = null,$clear = 1)
     {
-        $module = Yii::$app->getModule('iyo');
-        $this->enableCsrfValidation = false;
+        $module = Yii::$app->getModule('iyo');        
         if (!$data)
         {
 			return json_encode(['status'=>false]);
@@ -244,7 +253,7 @@ class RecordController extends Controller
 		$post = Yii::$app->request->post();
 		
 		$dataRec = [];
-		if ($id == 0 && isset($post['records']))
+		if (($id == 0 || $id == null) && isset($post['records']))
 		{
 			$dataRec = $post['records'];
 			//print_r($post);
@@ -259,6 +268,19 @@ class RecordController extends Controller
 				
 		foreach ($dataRec as $id=>$rec)
 		{						
+			
+			$isdel = true;			
+			if (is_array($rec))
+			{
+				foreach ($rec as $k=>$v)
+				{
+					if (!in_array($k,['gid','_csrf']))
+					{
+						$isdel = false;	
+					}	
+				}
+			}
+			
 			
 			$model = new Record($data);
 			if (is_numeric($id) && $model)
@@ -276,18 +298,19 @@ class RecordController extends Controller
 			}
 			
 			$res= false;					
-			if (count($post) > 1 && $model->load(['Record'=>$rec]))
+			if (!$isdel && $model->load(['Record'=>$rec]))
 			{
 								
 				$geom1 = false;
 				$geom2 = false;
+				$isgeom = false;
 				foreach ($rec as $key=>$val)
 				{
 					if ($key == "geometry")
 					{					
 						$key = $module->geom_col;	
-						
-						$datatype = $datamodel->type;
+						$isgeom = true;
+												
 						
 						/* postgis 2
 						$val = $model->db->createCommand(
@@ -301,19 +324,11 @@ class RecordController extends Controller
 						$srid = (empty($model->data->srid)?4326:$model->data->srid); //4326;
 											
 						$string = json_encode($coordinates);										
-						//echo $string."\n";
+						//echo $string."\n";												
 						
-						$string = preg_replace(['/([0-9\-\.]+),([0-9\-\.]+)/','/\[/','/\]/'], ['$1 $2','(',')'], $string);
-						$string = str_replace(['((','))','),('], ['(',')',','], $string);
-						
-						//if (substr($tipe,-3) == 'GON')
-						if ($tipe == 'MULTIPOLYGON')
-						{
-							$string = '('.$string.')';	
-						}										
-						
-						//die($string);						
-						
+						$string = preg_replace(['/\[([0-9\-\.]+),([0-9\-\.]+)\]/'], ['$1 $2'], $string);								
+						$string = str_replace(['[',']'], ['(',')'], $string);
+																		
 						$string = $tipe.' '.$string;
 						
 						$geom2 = $model->db->createCommand(
@@ -322,35 +337,17 @@ class RecordController extends Controller
 							
 						$geom1 = $model->db->createCommand(
 								"SELECT (ST_Transform(ST_GeomFromText(:val,4326),:srid)) as g"
-							)->bindValues([":val"=>$string,":srid"=>$srid])->queryScalar();	
-						
-						//echo $string." ".$srid;
-						//die($geom1);						
-						
-						if ($datatype > 2)
-						{
-							$val = $geom2;
-						}
-						else
-						{																											
-							$val = $geom1;
-						}
-						
-						//$model->$key = $val;
-					}
-					
-					if( $key != "_csrf" && !(empty($val) || $val == 'undefined'))
-					{
-						//$model->$key = 	is_numeric($val)?(is_int($val)?intval($val):floatval($val)):$val;	
-					//	$model->$key = $val;
+							)->bindValues([":val"=>$string,":srid"=>$srid])->queryScalar();																
+												
 					}					
-					
 					
 				}
 				
-				
-				$geom_col = $module->geom_col;
-				$model->$geom_col = $geom1;		
+				if ($isgeom)
+				{
+					$geom_col = $module->geom_col;
+					$model->$geom_col = $geom1;		
+				}
 				
 				if ($model->validate()) {					
 					try {
@@ -358,7 +355,10 @@ class RecordController extends Controller
 					}
 					catch (yii\db\Exception $e)
 					{
-						$model->$geom_col = $geom2;			
+						if ($isgeom)
+						{
+							$model->$geom_col = $geom2;			
+						}
 						$res = $model->save();
 					}
 				} else {					
@@ -366,19 +366,22 @@ class RecordController extends Controller
 				}
 								
 			}
-			elseif (count($post) == 1 && $model)
+			elseif ($isdel && $model)
 			{
 				$res = $model->delete();
 			}
 			
 			$err = $model->getErrors();			
-			if (!empty($rrr))
+			if (!empty($err))
 			{
-				$errors = array_merge($errors,$err);	
+				$errors = array_merge($errors,$err);					
 			}
 			else
 			{				
-				$clear = \amilna\iyo\components\Tilep::clearTile($model->data->id,true,true);
+				if ($clear == 1)
+				{
+					$clear = \amilna\iyo\components\Tilep::clearTile($model->data->id,true,true);
+				}
 			}			
 		} 
 				

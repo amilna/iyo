@@ -83,8 +83,15 @@ class PageController extends \amilna\blog\controllers\PageController
         
         if (!$model)
         {
-			$model = $this->findModel($id);
-		}
+			if ($id)
+			{
+				$model = $this->findModel($id);
+			}	
+			else
+			{
+				return $this->redirect(['//iyo/map/']);	
+			}
+		}		
         
         if ($format == 'json')
         {
@@ -162,7 +169,7 @@ class PageController extends \amilna\blog\controllers\PageController
 		{			
 			preg_match_all('/\{DATA id\:(\d+) query\:(.*) var\:([a-zA-Z0-9]+)\}/',$content,$matches);		
 			if (count($matches[0]) > 0)
-			{		
+			{										
 				for ($m=0;$m<count($matches[0]);$m++)
 				{
 					$did = $matches[1][$m];
@@ -210,12 +217,14 @@ class PageController extends \amilna\blog\controllers\PageController
 						$query = new Query;
 						$query->select($json['select'])						
 							->from($froms);
-						
+													
 						if (isset($json['leftJoins']))
-						{
+						{							
+							
 							foreach ($json['leftJoins'] as $lj)
 							{
-								$allow = true;
+								$allow = true;																
+								
 								if (!is_numeric($lj['table']))
 								{
 									preg_match_all('/from ([a-zA-Z0-9_\{\}\%]+)/i',$lj['table'],$errs);									
@@ -225,7 +234,7 @@ class PageController extends \amilna\blog\controllers\PageController
 										{
 											$tb = $errs[1][$e];
 											if (preg_replace('/^{{%iyo_data_(\d+)}}$/i','',$tb) == $tb)
-											{
+											{												
 												$allow = false;
 											}								
 										}	
@@ -266,11 +275,11 @@ class PageController extends \amilna\blog\controllers\PageController
 							$query->limit($json['limit']);
 						}
 						
-						try {
+						//try {
 							$rows = $query->all();									
-						} catch (\yii\db\Exception $e) {
-							$rows = [];	
-						}	
+						//} catch (\yii\db\Exception $e) {
+						//	$rows = [];	
+						//}	
 						$res[$did] = $rows;								
 					}
 				

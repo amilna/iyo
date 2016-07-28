@@ -25,30 +25,8 @@ use kartik\datetime\DateTimePicker;
 		<div class="col-md-9">
 			<?= $form->field($model, 'title')->textInput(['maxlength' => 65]) ?>
 			<?= $form->field($model, 'description')->textArea(['maxlength' => 155]) ?>						
+			<?= $form->field($model, 'config')->textArea(['rows' => 8]) ?>
 			
-			<?php 
-			$isettings = [
-					'lang' => substr(Yii::$app->language,0,2),
-					'minHeight' => 400,
-					'toolbarFixedTopOffset'=>50,	
-					'buttonSource'=> true,							
-					'plugins' => [				
-								
-						'fullscreen'
-					],
-					'buttons'=> ['html'],					
-					'formatting'=>[],		
-					'paragraphize'=>false,	
-					'pastePlainText'=>true,
-					'deniedTags'=> ['html', 'head', 'link', 'body', 'meta', 'script', 'style', 'applet','p']
-				];							
-			
-			use vova07\imperavi\Widget;
-			echo $form->field($model, 'config')->widget(Widget::className(), [
-				'settings' => $isettings,
-				'options'=>["style"=>"width:100%"]
-			]);
-			?>
 			<div class="well">
 				<h4><?= Yii::t("app","Config example")?></h4>
 				<code>
@@ -75,6 +53,8 @@ use kartik\datetime\DateTimePicker;
 					}
 				</code>
 			</div>
+			
+			<?= $model->remarks ?>
 			<?= $form->field($model, 'remarks')->textarea(['rows' => 6]) ?>
 		</div>
 		<div class="col-md-3">						
@@ -113,3 +93,31 @@ use kartik\datetime\DateTimePicker;
     <?php ActiveForm::end(); ?>
 
 </div>
+
+<script type="text/javascript">
+<?php $this->beginBlock('TAB') ?>			
+$(document).delegate('#map-config', 'keydown', function(e) {
+  var keyCode = e.keyCode || e.which;
+
+  if (keyCode == 9) {
+    e.preventDefault();
+    var start = $(this).get(0).selectionStart;
+    var end = $(this).get(0).selectionEnd;
+
+    // set textarea value to: text before caret + tab + text after caret
+    $(this).val($(this).val().substring(0, start)
+                + "\t"
+                + $(this).val().substring(end));
+
+    // put caret at right position again
+    $(this).get(0).selectionStart =
+    $(this).get(0).selectionEnd = start + 1;
+  }
+});
+<?php $this->endBlock(); ?>
+
+</script>
+<?php
+yii\web\YiiAsset::register($this);
+$this->registerJs($this->blocks['TAB'], yii\web\View::POS_END);
+

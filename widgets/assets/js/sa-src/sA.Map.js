@@ -26,6 +26,11 @@ sA.Map = function(arrObj_options) {
 	if (this.isObj(options.editable)) {
 		this.editable = options.editable;
 	}
+	
+	this.trackgeo = false;
+	if (this.isObj(options.trackgeo)) {
+		this.trackgeo = options.trackgeo;
+	}
 		
 	if (this.isObj(options.init)) {
 		this.init = options.init;
@@ -34,6 +39,7 @@ sA.Map = function(arrObj_options) {
 	this.zooms = [];//[(this.isObj(this.init.zoom)?this.init.zoom:5)];
 	this.centers = [];//[(this.isObj(this.init.center)?this.init.center:[117, -2])];
 	this.sublayers = [];
+		
 	
 	this.minZoom = 0;
 	if (this.isObj(options.minZoom)) {
@@ -226,6 +232,54 @@ sA.Map = function(arrObj_options) {
 	{		
 		this.addLayer(this.layers[l]);				
 	}
+	
+	/*** START GEOLOCATION ***/
+	
+	this.geolocation = new ol.Geolocation({
+		projection: "EPSG:3857",
+		trackingOptions: {maximumAge:180000, timeout:600000, enableHighAccuracy: true}
+	});
+	
+	this.geolocation.on('change:position', function() {
+		var coordinates = map.sai.geolocation.getPosition();
+		map.sai.positionFeature.setGeometry(coordinates ?
+		new ol.geom.Point(coordinates) : null);
+	});
+	
+	this.accuracyFeature = new ol.Feature();
+	this.geolocation.on('change:accuracyGeometry', function() {
+		map.sai.accuracyFeature.setGeometry(map.sai.geolocation.getAccuracyGeometry());
+	});
+
+	this.positionFeature = new ol.Feature();
+	this.positionFeature.setStyle(new ol.style.Style({
+		image: new ol.style.Circle({
+			radius: 6,
+			fill: new ol.style.Fill({
+				color: '#3399CC'
+			}),
+			stroke: new ol.style.Stroke({
+				color: '#fff',
+				width: 2
+			})
+		})
+	}));
+		
+	this.glayer = new ol.layer.Vector({			
+        source: new ol.source.Vector({
+          features: [map.sai.accuracyFeature, map.sai.positionFeature]
+        })
+	});
+	
+	map.addLayer(map.sai.glayer);	
+	
+	if (this.trackgeo)
+	{
+		this.geolocation.setTracking(true);
+		this.glayer.setVisible(true);
+	}
+	
+	/*** END GEOLOCATION ***/				
 	
 	
 	var sai = this;
@@ -502,6 +556,35 @@ sA.Map.prototype.addLayer = function(lconf) {
 			layer.utfGrid = utfGrid;							
 		}		
 	}
+	else if (lconf.type == "wms")
+	{
+		var wmsparams = {url: lconf.urls[0]};
+		if (this.isObj(lconf.wms))
+		{
+			if (this.isObj(lconf.wms['params']))
+			{
+				wmsparams['params'] = lconf.wms['params'];	
+			}		
+			
+			if (this.isObj(lconf.wms['serverType']))
+			{
+				wmsparams['serverType'] = lconf.wms['serverType'];	
+			}
+		}
+		
+		var layer = new ol.layer.Tile({
+			name : lconf.name,	
+			isbase : false,
+			source: new ol.source.TileWMS(wmsparams)
+		});		
+		layer.conf = lconf;
+		layer.setVisible(this.isObj(lconf.visible)?lconf.visible:true);
+		layer.setOpacity(this.isObj(lconf.opacity)?lconf.opacity:1);
+		
+		this.map.addLayer(layer);		
+		this.initUiLayer(layer);
+		this.initUiLegend(layer);				
+	}
 	else if	(lconf.type == "geojson")
 	{
 		var urls = [];
@@ -651,6 +734,75 @@ sA.Map.prototype.addLayer = function(lconf) {
 	}
 };
 
+sA.Map.prototype.getLayerId = function(layname) {
+	var sai = this;
+	var layers = [];
+	var layid = false;
+	
+	if (typeof layname == 'string')
+	{				
+		var lname = layname.split('~');
+		
+		sai.map.getLayers().forEach(function (lyr) {																	
+			if (sai.isObj(lyr.get('name')))
+			{			
+				var dname = lyr.get('name').split('~');
+				if (dname[0] == lname[0])
+				{					
+					layers.push(lyr);
+					layid = "layer_"+dname[0].toLowerCase().replace(/[^a-zA-Z0-9]/g,"_");
+				}	
+			}
+		});				
+	}
+	else
+	{
+		layers = [layname];
+		if (sai.isObj(layname.get('name')))
+		{			
+			var dname = layname.get('name').split('~');
+			layid = "layer_"+dname[0].toLowerCase().replace(/[^a-zA-Z0-9]/g,"_");
+		}	
+	}
+				
+	return [(layers.length == 0?false:layers),layid];
+};	
+
+sA.Map.prototype.removeLayer = function(layname) {								
+	var sai = this;	
+	var layerid = sai.getLayerId(layname);
+	var layers = layerid[0];
+	var layid = layerid[1];
+	
+	if (layers && layid)
+	{
+		$("#" +layid ).remove();
+		$("#" + sai.id +" .iyo-layers").sortable( "refresh" );	
+		
+		var lname = layers[0].get('name').split('~');
+		
+		var pos = -1;	
+		for (var l=0;l<sai.layers.length;l++)
+		{																									
+			if (sai.layers[l]['name'] == lname[0])
+			{
+				pos = l;
+				break;
+			}	
+		}		
+		sai.layers.splice( pos, 1 );
+		
+		layers.forEach(function(lyr){
+			sai.map.removeLayer(lyr);						
+		});
+	}
+	
+	var leg = $("#" + sai.id +" .iyo-layers").sortable('toArray');			
+	var legs = leg.reverse();		
+	//console.log(legs);
+	//console.log(sai.map.getLayers().getArray());
+};
+
 sA.Map.prototype.mkResStyle = function(feature, resolution, sai, fixres) {	
 	var sai = (typeof sai == "undefined"?this:sai);
 	var fixres = (typeof fixres == "undefined"?false:fixres);
@@ -793,9 +945,8 @@ sA.Map.prototype.initUiLegend = function(layer) {
 			var legendType = lconf.geomtype;
 			if (this.isObj(rule.legendType))
 			{
-				legendType = rule.legendType;
-				//console.log(legendType);
-			}						
+				legendType = rule.legendType;				
+			}												
 			
 			if (legendType)
 			{
@@ -815,8 +966,10 @@ sA.Map.prototype.initUiLegend = function(layer) {
 				else if (this.inArray(legendType,['LineString','MultiLineString']) >= 0)
 				{
 					var img = '<svg preserveAspectRatio="xMinYMin meet" viewBox="0 0 160 80"><polygon points="0,40 10,31 20,25 30,22 40,21 50,22 60,25 70,31 80,40 90,49 100,55 110,58 120,59 130,58 140,55 150,49 160,40" style="fill:none;stoke:none;"/>';
-					img += '<polyline points="0,40 10,31 20,25 30,22 40,21 50,22 60,25 70,31 80,40 90,49 100,55 110,58 120,59 130,58 140,55 150,49 160,40" style="fill:none;stoke:none;"/></svg>';
-					$("#" + layid+"_class_"+r+ " .iyo-layer-class-symbol").append(img);					
+					img += '<polyline class="outline" points="0,40 10,31 20,25 30,22 40,21 50,22 60,25 70,31 80,40 90,49 100,55 110,58 120,59 130,58 140,55 150,49 160,40" style="fill:none;stoke:none;"/>';										
+					img += '<polyline class="inline" points="0,40 10,31 20,25 30,22 40,21 50,22 60,25 70,31 80,40 90,49 100,55 110,58 120,59 130,58 140,55 150,49 160,40" style="fill:none;stoke:none;"/></svg>';					
+					
+					$("#" + layid+"_class_"+r+ " .iyo-layer-class-symbol").append(img);										
 				}			
 				
 				if (this.isObj(rule.polygonSymbolizer))
@@ -840,6 +993,14 @@ sA.Map.prototype.initUiLegend = function(layer) {
 					var strokeOpacity = this.isObj(rule.lineSymbolizer.strokeOpacity)?rule.lineSymbolizer.strokeOpacity:"1";								
 					var strokeWidth = this.isObj(rule.lineSymbolizer.strokeWidth)?rule.lineSymbolizer.strokeWidth:"1";				
 					var strokeDasharray = this.isObj(rule.lineSymbolizer.strokeDasharray)?rule.lineSymbolizer.strokeDasharray:"inherit";
+					
+					var ostroke = this.isObj(rule.lineSymbolizer.ostroke)?rule.lineSymbolizer.ostroke:stroke;
+					var ostrokeOpacity = this.isObj(rule.lineSymbolizer.ostrokeOpacity)?rule.lineSymbolizer.ostrokeOpacity:"0";								
+					var ostrokeWidth = this.isObj(rule.lineSymbolizer.ostrokeWidth)?rule.lineSymbolizer.ostrokeWidth:strokeWidth;				
+					var ostrokeDasharray = this.isObj(rule.lineSymbolizer.ostrokeDasharray)?rule.lineSymbolizer.ostrokeDasharray:strokeDasharray;
+					
+					
+					
 					if (strokeDasharray != 'inherit')
 					{
 						var sdas = strokeDasharray.split(',');
@@ -862,7 +1023,8 @@ sA.Map.prototype.initUiLegend = function(layer) {
 					}
 					else if (this.inArray(legendType,['LineString','MultiLineString']) >= 0)
 					{									
-						$("#" + layid+"_class_"+r+ " .iyo-layer-class-symbol svg polyline").css({"stroke":stroke,"stroke-dasharray":strokeDasharray,"stroke-opacity":parseFloat(strokeOpacity),"stroke-width":parseInt(strokeWidth)*(160/ratw)});
+						$("#" + layid+"_class_"+r+ " .iyo-layer-class-symbol svg polyline.outline").css({"stroke":ostroke,"stroke-dasharray":ostrokeDasharray,"stroke-opacity":parseFloat(ostrokeOpacity),"stroke-width":parseInt(ostrokeWidth)*(160/ratw)});
+						$("#" + layid+"_class_"+r+ " .iyo-layer-class-symbol svg polyline.inline").css({"stroke":stroke,"stroke-dasharray":strokeDasharray,"stroke-opacity":parseFloat(strokeOpacity),"stroke-width":parseInt(strokeWidth)*(160/ratw)});
 					}				
 				}
 				

@@ -85,6 +85,7 @@ class Record extends \yii\db\ActiveRecord
 						$types['boolean'][] = $column->name;
 						break;
 					case Schema::TYPE_FLOAT:
+					case Schema::TYPE_DOUBLE:
 					case Schema::TYPE_DECIMAL:
 					case Schema::TYPE_MONEY:
 						$types['number'][] = $column->name;
@@ -226,6 +227,11 @@ class Record extends \yii\db\ActiveRecord
 	
 	public static function getGeomGeojson($geom)
     {		
+		if (empty($geom))
+		{
+			return null;	
+		}
+		
 		return Yii::$app->db->createCommand(
 			"SELECT ST_AsGeoJSON(ST_Transform(cast('".$geom."' as geometry),4326),4,0) as geojson"
 		)->queryScalar();

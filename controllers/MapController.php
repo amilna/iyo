@@ -220,7 +220,7 @@ class MapController extends Controller
         
         if ($model == false)
         {
-			return $this->redirect(['default']);
+			return $this->redirect(['index']);
 		}
         
 		return $this->render('view', [

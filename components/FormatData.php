@@ -438,6 +438,8 @@ class FormatData extends Component
 				}
 			}												
 			
+			$basefile = \amilna\yap\Helpers::shellvar($basefile);			
+			
 			if ($ziptype == 0)
 			{
 				$basefile = str_replace(".zip","",$this->filename);
@@ -500,6 +502,10 @@ class FormatData extends Component
 				{
 					$bdir = dirname($basefile);
 					$nfilename = $bdir.'/'.basename($run);
+					
+					$run = \amilna\yap\Helpers::shellvar($run);			
+					$nfilename = \amilna\yap\Helpers::shellvar($nfilename);			
+					
 					$mv = shell_exec("				
 						mv '".$run."' '".$nfilename."';				
 					");	
@@ -519,6 +525,8 @@ class FormatData extends Component
 					$this->ext = substr($f,-4);
 				}	
 				$this->$act();
+				
+				$basefile = \amilna\yap\Helpers::shellvar($basefile);			
 				/*				
 				$unlink = shell_exec("				
 					rm -R '".$basefile."';				
@@ -552,6 +560,8 @@ class FormatData extends Component
 		if (file_exists($this->filename) && $this->ext == ".shp")
 		{											
 			$file = substr($this->filename,0,(strrpos($this->filename,"."))).$this->ext;
+			
+			$file = \amilna\yap\Helpers::shellvar($file);			
 			
 			$proj4 = shell_exec("gdalsrsinfo -o proj4 '".$file."'");
 			$ogrinfo = shell_exec("ogrinfo '".$file."' '".basename($file,".shp")."' -so");					
@@ -617,6 +627,10 @@ class FormatData extends Component
 				}					
 			}
 			
+			$file = \amilna\yap\Helpers::shellvar($file);			
+			$filesql = \amilna\yap\Helpers::shellvar($filesql);			
+			$table = \amilna\yap\Helpers::shellvar($table);			
+			
 			if ($this->postgis >= 2)
 			{
 				/* if use postgis 2 */									
@@ -680,6 +694,8 @@ class FormatData extends Component
 				//$drop = $this->db->createCommand($sql)->execute();
 			}
 			
+			$filesql = \amilna\yap\Helpers::shellvar($filesql);			
+			
 			$psql = shell_exec("PGPASSWORD=".$this->dbpwd." psql -q -w -U ".$this->dbusr." -d ".$this->dbname." < ".$filesql);
 			
 			unlink($filesql);						
@@ -710,7 +726,7 @@ class FormatData extends Component
 		$imgDb = $compDir.'/indeks.db';				
 		
 		if (!file_exists($imgDb))
-		{
+		{			
 			$cpDb = shell_exec("cp '".$tileDb."' '".$imgDb."'");
 		}		
 				
@@ -747,6 +763,8 @@ class FormatData extends Component
 		$failinsert = [];
 		foreach ($files as $file)
 		{				
+			$file = \amilna\yap\Helpers::shellvar($file);			
+			
 			$gdalinfo = shell_exec("gdalinfo '".$file."'");
 						
 			preg_match('/Lower Left([ ]+)\(([ ]+)?(-?[0-9\.]+),([ ]+)?(-?[0-9\.]+)\)/', $gdalinfo, $min);		
@@ -805,6 +823,10 @@ class FormatData extends Component
 		{																
 			$bfile = substr($this->filename,0,(strrpos($this->filename,".")));
 			$file = $bfile.$this->ext;
+			
+			$bfile = \amilna\yap\Helpers::shellvar($bfile);			
+			$file = \amilna\yap\Helpers::shellvar($file);			
+			
 			$ogr2shp = shell_exec("ogr2ogr -f 'ESRI Shapefile' -overwrite '".$bfile.".shp' '".$file."'");
 						
 			$this->filename = $bfile.".shp";
@@ -823,6 +845,57 @@ class FormatData extends Component
 
 			return !is_array($this->db->createCommand($sql)->execute());
 		}
-	}		
+	}	
+	
+	/* creates a compressed zip file */
+	public static function create_zip($files = array(),$destination = '',$overwrite = false) {	  	  
+	  
+		if (file_exists($destination) && !$overwrite) { return false; }
+
+		if (!file_exists($destination))
+		{
+			$overwrite = false;  
+		}
+		
+		$valid_files = array();
+		//if files were passed in...
+		if(is_array($files)) {
+			//cycle through each file
+			foreach($files as $file) {
+				//make sure the file exists     
+				if(file_exists($file)) {
+					$valid_files[] = $file;
+				}
+			}
+		}	  	  
+
+		//if we have good files...
+		if(count($valid_files)) {		
+
+			//create the archive
+			$zip = new \ZipArchive();
+			
+			if($zip->open($destination,$overwrite ? \ZIPARCHIVE::OVERWRITE : \ZIPARCHIVE::CREATE) !== true) {
+				return false;
+			}			
+
+			//add the files
+			foreach($valid_files as $file) {			  		  
+				$zip->addFile($file,basename($file));
+			}
+			//debug
+			//echo 'The zip archive contains ',$zip->numFiles,' files with a status of ',$zip->status;
+
+			//close the zip -- done!
+			$zip->close();
+
+			//check to make sure the file exists
+			return file_exists($destination);
+		}
+		else
+		{
+			return false;
+		}
+	}	
 	
 }

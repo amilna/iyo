@@ -315,5 +315,78 @@ class DataController extends Controller
 		$tilep = new \amilna\iyo\components\Tilep();
 		$tilep->errorHandler();		
 	}
+	
+	public function actionGetshp($id,$title="") 
+    {        															
+		$model = $this->findModel($id);        
+		
+		if ($model)
+		{
+			$userid = Yii::$app->user->id;
+			$date = date('Ymd');
+			$enfix = $userid.'_'.$date;
+				
+			$path = Yii::getAlias("@common/../backend/runtime");						
+			$fileshp = $path."/".(empty($title)?'data_'.$id:$title).'_'.$enfix;						
+			
+			preg_match('/dbname\=(.*)?/', Yii::$app->db->dsn, $matches);																		
+			$dbname = $matches[1];
+			$tablePrefix = Yii::$app->db->tablePrefix;
+			
+			$query = 'select * from '.$tablePrefix.'iyo_data_'.$id;
+			
+			$post = Yii::$app->request->post();
+			if ($post)
+			{							
+				if (isset($post['query']))
+				{
+				//	$query .= ' where '.$post['query'];
+				}
+			}																		
+						
+			$fileshp = \amilna\yap\Helpers::shellvar($fileshp);
+			$dbname = \amilna\yap\Helpers::shellvar($dbname);
+			$query = \amilna\yap\Helpers::shellvar($query);			
+												
+			$pgsql2shp = shell_exec("pgsql2shp -f ".$fileshp." ".$dbname.' "'.$query.'"');											
+			
+			$path = false;
+			$result = false;
+			
+			$files_to_zip = glob($fileshp."*");
+			
+			if (file_exists($fileshp.".shp"))
+			{																															
+				$module = Yii::$app->getModule('iyo');
+				$ddir = Yii::getAlias($module->uploadDir).'/files';
+				$durl = Yii::getAlias($module->uploadURL).'/files';
+				
+				if (!file_exists($ddir))
+				{
+					mkdir($ddir, 0775);
+				}				
+					
+				$result = \amilna\iyo\components\FormatData::create_zip($files_to_zip,$ddir.'/'.basename($fileshp.".zip"),true);													
+			}
+			
+			foreach ($files_to_zip as $f)
+			{
+				unlink($f);
+			}																					
+							
+			
+			if ($result)
+			{																								
+				$path = $durl.'/'.basename($fileshp.".zip");	
+				
+				return $path;			
+			}
+			
+			throw new NotFoundHttpException('The requested data can not be downloaded.');			
+					
+		}
+				
+	}
+	
         
 }

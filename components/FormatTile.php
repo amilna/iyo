@@ -163,7 +163,9 @@ class FormatTile extends Component
 					if ($z && $x && $y)
 					{
 						$dir .= "/".$z."/".$x."/".$y;
-					}				
+					}			
+					
+					$dir = \amilna\yap\Helpers::shellvar($dir);				
 					shell_exec("rm -R ".$dir);	
 				}
 			}

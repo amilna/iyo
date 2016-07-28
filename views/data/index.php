@@ -135,10 +135,14 @@ $this->params['breadcrumbs'][] = $this->title;
 
             [
 				'class' => 'kartik\grid\ActionColumn',
+				'template' => '{download} {view} {update} {delete}',
 				'buttons'=>[
 					'view'=>function ($url, $model, $key) {
 						return Html::a('<span class="glyphicon glyphicon-eye-open"></span>',["//iyo/".($model->type < 6?"record/index":"data/view"),($model->type < 6?'data':'id')=>$model->id],["title"=>Yii::t("yii","View")]);
 					},									
+					'download'=>function ($url, $model, $key) {
+						return Html::a('<span class="glyphicon glyphicon-download"></span>',["//iyo/data/getshp",'id'=>$model->id],["title"=>Yii::t("app","Download")]);
+					},
 				]
             ],
         ],

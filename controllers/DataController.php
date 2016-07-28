@@ -347,7 +347,9 @@ class DataController extends Controller
 			$fileshp = \amilna\yap\Helpers::shellvar($fileshp);
 			$dbname = \amilna\yap\Helpers::shellvar($dbname);
 			$query = \amilna\yap\Helpers::shellvar($query);			
-												
+			
+			
+			//die("pgsql2shp -f ".$fileshp." ".$dbname.' "'.$query.'"');									
 			$pgsql2shp = shell_exec("pgsql2shp -f ".$fileshp." ".$dbname.' "'.$query.'"');											
 			
 			$path = false;
@@ -379,7 +381,7 @@ class DataController extends Controller
 			{																								
 				$path = $durl.'/'.basename($fileshp.".zip");	
 				
-				return $path;			
+				return $this->redirect($path);			
 			}
 			
 			throw new NotFoundHttpException('The requested data can not be downloaded.');			

@@ -85,7 +85,13 @@ $this->params['breadcrumbs'][] = $this->title;
 				'format'=>'raw',
 				'value'=>function($data){																			
 					$colnames = '';
-					$mcols = json_decode($data->metadata);												
+					$mcols = json_decode($data->metadata);
+					
+					if (!isset($mcols->columns))
+					{	
+						return $data->metadata;												
+					}
+						
 					foreach ($mcols->columns as $mcol)
 					{						
 						$colnames .= ($colnames == ''?'<a>':', <a>').$mcol->name.'</a> <small>'.$mcol->type.' '.$mcol->options.'</small>';

@@ -38,15 +38,20 @@ $labels = $data->attributeLabels();
 	$cols = [];
 	$mcols = json_decode($data->metadata);
 	$n = 0;
+	
+	if (isset($mcols->columns))
+	{			
 			
-	foreach ($mcols->columns as $mcol)
-	{
-		if ($n < 5 && in_array($mcol->name,$columns))
-		{								
-			$cols[] = $mcol->name;
-			$n += 1;	
+		foreach ($mcols->columns as $mcol)
+		{
+			if ($n < 5 && in_array($mcol->name,$columns))
+			{								
+				$cols[] = $mcol->name;
+				$n += 1;	
+			}
+			$colnames .= ($colnames == ''?'<a>':', <a>').$mcol->name.'</a> <small>'.$mcol->type.' '.$mcol->options.'</small>';
 		}
-		$colnames .= ($colnames == ''?'<a>':', <a>').$mcol->name.'</a> <small>'.$mcol->type.' '.$mcol->options.'</small>';
+		
 	}
 ?>
 

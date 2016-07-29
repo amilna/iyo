@@ -265,6 +265,8 @@ class RecordController extends Controller
 		}
 		
 		$errors = [];
+		
+		$res= true;
 				
 		foreach ($dataRec as $id=>$rec)
 		{						

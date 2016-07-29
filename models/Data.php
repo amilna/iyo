@@ -233,7 +233,9 @@ class Data extends \yii\db\ActiveRecord
 				{
 					$filename = str_replace('%20',' ',$filename);
 					$file = $path.$filename;
-			
+															
+					$file = \amilna\yap\Helpers::shellvar($file);		
+					
 					$gdalinfo = shell_exec("gdalinfo '".$file."'");						
 					preg_match('/Lower Left([ ]+)\(([ ]+)?(-?[0-9\.]+),([ ]+)?(-?[0-9\.]+)\)/', $gdalinfo, $min);		
 					preg_match('/Upper Right([ ]+)\(([ ]+)?(-?[0-9\.]+),([ ]+)?(-?[0-9\.]+)\)/', $gdalinfo, $max);
@@ -305,6 +307,9 @@ class Data extends \yii\db\ActiveRecord
 						
 			if (file_exists($file) && $ext == ".shp")
 			{											
+												
+				$file = \amilna\yap\Helpers::shellvar($file);		
+			
 				$proj4 = shell_exec("gdalsrsinfo -o proj4 '".$file."'");
 				$ogrinfo = shell_exec("ogrinfo '".$file."' '".basename($file,".shp")."' -so");					
 					
@@ -375,6 +380,11 @@ class Data extends \yii\db\ActiveRecord
 				
 				$table = $prefix.str_replace(["{{%","}}"],"",Data::tableName())."_".$this->id;
 				$filesql = $path.Yii::$app->user->id."_".$table."_".time();
+								
+				$filesql = \amilna\yap\Helpers::shellvar($filesql);			
+				$table = \amilna\yap\Helpers::shellvar($table);	
+				$file = \amilna\yap\Helpers::shellvar($file);		
+				
 				$shp2pgsql = shell_exec("shp2pgsql -s ".$srid." -W latin1 '".$file."' public.".$table." > ".$filesql);								
 				
 				$sql = "DROP TABLE IF EXISTS ".$table."";
@@ -395,6 +405,9 @@ class Data extends \yii\db\ActiveRecord
 				
 				$session = Yii::$app->session;
 				$session["iyo-data-importid"] = Yii::$app->user->id."_".date('U');
+				
+				$basefile = \amilna\yap\Helpers::shellvar($basefile);	
+				
 				$seqrun = shell_exec("touch ".$path."start_".$session["iyo-data-importid"].";
 					cat '".$basefile.".*' > '".$basefile.".zip';
 					unzip '".$basefile.".zip' '".$basefile."';				

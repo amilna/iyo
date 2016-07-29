@@ -176,6 +176,10 @@ class Tilep extends Component
 		
 		$lgrid = ($lgrid !== false?" -l ".$lgrid:"");								
 		
+		$xml = \amilna\yap\Helpers::shellvar($xml);
+		$bfile = \amilna\yap\Helpers::shellvar($bfile);
+		$lgrid = \amilna\yap\Helpers::shellvar($lgrid);
+		
 		$ok = false;
 		if (substr($this->xmlDir,0,4) == 'http')
 		{

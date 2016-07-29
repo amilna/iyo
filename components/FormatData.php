@@ -694,9 +694,10 @@ class FormatData extends Component
 				//$drop = $this->db->createCommand($sql)->execute();
 			}
 			
-			$filesql = \amilna\yap\Helpers::shellvar($filesql);			
+			preg_match('/port\=(\d+)?/', $this->db->dsn, $patches);
+			$portdb = (isset($patches[1])?'-p '.$patches[1].' ':'');		
 			
-			$psql = shell_exec("PGPASSWORD=".$this->dbpwd." psql -q -w -U ".$this->dbusr." -d ".$this->dbname." < ".$filesql);
+			$psql = shell_exec("PGPASSWORD=".$this->dbpwd." psql ".$portdb."-q -w -U ".$this->dbusr." -d ".$this->dbname." < ".$filesql);
 			
 			unlink($filesql);						
 			

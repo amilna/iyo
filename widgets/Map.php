@@ -38,16 +38,17 @@ class Map extends Widget
 		$comDir = \Yii::getAlias('@amilna/iyo/components');
 		$tileURL = \Yii::getAlias($module->tileURL);
 		
-		$sock = false;		
+		$socks = [];
+		$sock = true;		
 		$ipaddr = $module->ipaddress;
 		foreach ($module->ports as $port)
 		{
-			$sock = (!$sock?false:@fsockopen($ipaddr,$port,$num,$error,1));
+			$s = @fsockopen($ipaddr,$port,$num,$error,1);
+			$sock = ($sock === false?false:$s);
+			$socks[$port] = $s;
 		}
 		
-		//$sock = true;
-		
-		if (!$sock && in_array($module->tileServer,['webpy','nodejs'])) {						
+		if ($sock === false && in_array($module->tileServer,['webpy','nodejs'])) {						
 			$pyFile = \Yii::getAlias($module->pyFile);
 			$webpyFile = \Yii::getAlias($module->webpyFile);
 			$xmlDir = \Yii::getAlias($module->xmlDir);
@@ -66,8 +67,11 @@ class Map extends Widget
 			if ($module->tileServer == 'webpy') {																
 				foreach ($module->ports as $port)
 				{										
-					$cmd = 'python "'.$webpyFile.'" -x "'.$xmlDir.'" -d "'.$webDir.'" -t "'.$tileDir.'" -a "'.$ipaddr.'" -p "'.$port.'" -T "'.$tileURL.'" -E "'.$execFile.'" -D "'.$dbdsn.'" -P '.$dbpfx.' -U '.$dbusr.' -W '.$dbpwd.'  -G '.$geomCol.' -c "'.$module->maxZoomCache.'" '.(!empty($module->sslKey)?'-K "'.$module->sslKey.'"':'').' '.(!empty($module->sslCert)?'-C "'.$module->sslCert.'"':'');
-					$process = new Process($cmd);
+					if ($socks[$port] === false)
+					{
+						$cmd = $module->python.' "'.$webpyFile.'" -x "'.$xmlDir.'" -d "'.$webDir.'" -t "'.$tileDir.'" -a "'.$ipaddr.'" -p "'.$port.'" -T "'.$tileURL.'" -E "'.$execFile.'" -D "'.$dbdsn.'" -P '.$dbpfx.' -U '.$dbusr.' -W '.$dbpwd.'  -G '.$geomCol.' -c "'.$module->maxZoomCache.'" '.(!empty($module->sslKey)?'-K "'.$module->sslKey.'"':'').' '.(!empty($module->sslCert)?'-C "'.$module->sslCert.'"':'');
+						$process = new Process($cmd);
+					}
 				}				
 			}
 			else
@@ -86,7 +90,7 @@ class Map extends Widget
 						$portsStr = '['.implode(',',$module->xmlports).']';						
 						$dbstr = $db->dsn.','.$db->tablePrefix.','.$db->username.','.$db->password;
 						$geomuserstr = $module->geom_col.','.Yii::$app->user->id;
-						$cmd = 'node "'.$comDir.'/xmlin.js" "'.$allowedips.'" "'.$ipaddr.'" "'.$portsStr.'" "'.$execFile.'" "'.$dbstr.'" "'.$geomuserstr.'" '.(!empty($module->sslKey)?'"'.$module->sslKey.'"':'').' '.(!empty($module->sslCert)?'"'.$module->sslCert.'"':''); 			
+						$cmd = $module->node.' "'.$comDir.'/xmlin.js" "'.$allowedips.'" "'.$ipaddr.'" "'.$portsStr.'" "'.$execFile.'" "'.$dbstr.'" "'.$geomuserstr.'" '.(!empty($module->sslKey)?'"'.$module->sslKey.'"':'').' '.(!empty($module->sslCert)?'"'.$module->sslCert.'"':''); 			
 						$process = new Process($cmd);						
 					}
 					

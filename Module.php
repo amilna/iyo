@@ -38,11 +38,15 @@ class Module extends \yii\base\Module
 	public $sslCert = '';
 	public $maxZoomCache = -1; /* -1 for no disk cache, range 0 -19 */
 	
-	public $python = 'python';
-	public $php = 'php';
-	
 	public $urls = [];
-
+	
+	public $geosDir = 'geos';
+	public $node = 'node';
+	public $python = 'python'; /* python execute path, ex: 'C:\Pyhton27\python.exe' */ 
+	public $php = 'php';
+	public $shp2pgsql = 'shp2pgsql'; /* shp2pgsql execute path, ex: '\"C:\Program Files\PostgreSQL\9.6\bin\shp2pgsql.exe\"' */
+	public $gdalinfo = 'gdalinfo'; /* gdalinfo execute path, ex: 'C:\Python27\Lib\site-packages\osgeo\gdalinfo.exe' */
+	
     public function init()
     {
         parent::init();

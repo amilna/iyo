@@ -23,6 +23,10 @@ class FormatData extends Component
 	private $tileDir = null;
 	private $geom_col = null;
 	private $postgis = 1.5;
+	private $iswin = false;
+	private $gdalinfo = 'gdalinfo';
+	private $shp2pgsql = 'shp2pgsql';
+	private $runtime = '';
 	
 	private $ogrexts = [".kml",".geojson",".gpx"];
 	private $imgexts = [".tif"];
@@ -30,7 +34,7 @@ class FormatData extends Component
 	
 	public function __construct($dsn,$tablePrefix,$username,$password,$param)
 	{						
-		$params = explode(":",$param);
+		$params = explode("~",$param);
 		$uploadDir = $params[0];
 		$tileDir = $params[1];
 		$geom_col = $params[2];
@@ -41,6 +45,28 @@ class FormatData extends Component
 		{
 			$this->postgis = floatval($params[5]);
 		}
+		
+		if (isset($params[6]))
+		{
+			$this->gdalinfo = $params[6];
+		}
+		
+		if (isset($params[7]))
+		{
+			$this->shp2pgsql = $params[7];
+		}
+		
+		if (isset($params[8]))
+		{
+			$this->runtime = $params[8];
+		}
+			
+		if (strtoupper(substr(\PHP_OS, 0, 3)) === 'WIN') {
+			$iswin = true;
+		} else {
+			$iswin = false;	
+		}
+		$this->iswin = $iswin;	
 		
 		preg_match('/dbname\=(.*)?/', $dsn, $matches);			
 		$this->dbname = $matches[1];
@@ -65,7 +91,6 @@ class FormatData extends Component
 		$this->metadata = $this->db->createCommand($sql)->queryScalar();						
 					
 		$path = $uploadDir;
-		$path = $path."/geos/";	
 						
 		$metadata = json_decode($this->metadata,true);		
 		$filename = isset($metadata["srcfile"])?$metadata["srcfile"]:false;														
@@ -74,12 +99,9 @@ class FormatData extends Component
 		if ($filename)
 		{
 			$this->ext = $this->checkFileExt($path.$filename);									
-			//$filename = substr($filename,0,-1*(strrpos($filename,".")-1)).$this->ext;
-			//die($filename);
 			$this->filename = $path.$filename;									
 		}
 		
-		//die($this->filename);
 	}	
 	
 	public function checkFileExt($filename = false)	
@@ -197,8 +219,6 @@ class FormatData extends Component
 				$sql = "ALTER TABLE ".$table." ADD COLUMN ".'"'.$column["name"].'"'." ".$column["type"]." ".$column["options"];
 				
 				return !is_array($this->db->createCommand($sql)->execute());							
-				
-				//return \yii\db\Migration::addColumn( $table, $column["name"] , $column["type"] ." ". $column["options"] );
 			}
 			else
 			{
@@ -411,7 +431,6 @@ class FormatData extends Component
 	
 	private function zipImport()
 	{
-		//die($this->filename." tes");
 		
 		if (file_exists($this->filename) && $this->ext == ".zip")
 		{			
@@ -436,42 +455,20 @@ class FormatData extends Component
 						$ziptype = 3;
 					}	
 				}
-			}												
+			}
 			
-			$basefile = \amilna\yap\Helpers::shellvar($basefile);			
-			
-			if ($ziptype == 0)
-			{
-				$basefile = str_replace(".zip","",$this->filename);
+			$bp = explode('.', $this->filename);
+			$bname = $bp[0];															
+			$basefile = $bname;
+			$basefile = \amilna\yap\Helpers::shellvar($basefile);
 				
-				$unzip = shell_exec("															
-					unzip -o '".$basefile.".zip' -d '".$basefile."'				
-				");					
-								
+			if ($ziptype == 0)
+			{	
+				$unzip = \amilna\yap\Helpers::zipExtract($basefile.'.zip',$basefile);							
 			}			
-			else if ($ziptype == 1)
+			else
 			{
-				$basefile = preg_replace('/\.(\d+)\.zip/',"",$this->filename);
-				$unzip = shell_exec("
-					cat ".$basefile.".* > ".$basefile."-all.zip &&
-					unzip -o '".$basefile."-all.zip' -d '".$basefile."'
-				");	
-			}	
-			else if ($ziptype == 2)
-			{
-				$basefile = preg_replace('/\.(\d+)\.z(\d+)/',"",$this->filename);
-				$unzip = shell_exec("
-					cat ".$basefile.".* > ".$basefile."-all.zip &&
-					unzip -o '".$basefile."-all.zip' -d '".$basefile."'
-				");	
-			}							
-			else if ($ziptype == 3)
-			{
-				$basefile = preg_replace('/\.zip\.(.*)/',"",$this->filename);
-				$unzip = shell_exec("
-					cat ".$basefile.".* > ".$basefile."-all.zip &&
-					unzip -o '".$basefile."-all.zip' -d '".$basefile."'
-				");	
+				$unzip = \amilna\yap\Helpers::zipExtract($basefile.'.',$basefile);
 			}
 			
 			$run = false;
@@ -506,9 +503,7 @@ class FormatData extends Component
 					$run = \amilna\yap\Helpers::shellvar($run);			
 					$nfilename = \amilna\yap\Helpers::shellvar($nfilename);			
 					
-					$mv = shell_exec("				
-						mv '".$run."' '".$nfilename."';				
-					");	
+					rename($run, $nfilename);
 					$this->filename = $nfilename;
 				}
 				else
@@ -526,12 +521,7 @@ class FormatData extends Component
 				}	
 				$this->$act();
 				
-				$basefile = \amilna\yap\Helpers::shellvar($basefile);			
-				/*				
-				$unlink = shell_exec("				
-					rm -R '".$basefile."';				
-				");
-				*/ 
+				$basefile = \amilna\yap\Helpers::shellvar($basefile); 
 			}
 			else
 			{
@@ -563,8 +553,8 @@ class FormatData extends Component
 			
 			$file = \amilna\yap\Helpers::shellvar($file);			
 			
-			$proj4 = shell_exec("gdalsrsinfo -o proj4 '".$file."'");
-			$ogrinfo = shell_exec("ogrinfo '".$file."' '".basename($file,".shp")."' -so");					
+			$proj4 = shell_exec(str_replace('gdalinfo','gdalsrsinfo',$this->gdalinfo).' -o proj4 "'.$file.'" 2>&1');
+			$ogrinfo = shell_exec(str_replace('gdalinfo','ogrinfo',$this->gdalinfo).' "'.$file.'" "'.basename($file,".shp").'" -so 2>&1');					
 				
 			$srid = "";
 			if (strpos($proj4,"ERROR") === false && !empty($proj4))
@@ -580,11 +570,9 @@ class FormatData extends Component
 				}
 				$sql .= ($nsql==""?"":" OR (".$nsql.")");												
 				
-				$srid = $this->db->createCommand($sql)->queryScalar();								
-								
+				$srid = $this->db->createCommand($sql)->queryScalar();																
 									
-				/*
-				$ogrinfo = shell_exec("ogrinfo '".$file."' '".basename($file,".shp")."' -so");								
+				/*	
 				preg_match('/Layer SRS WKT\:\~(\S*)\~/', preg_replace("/\,(\s*)/",",",str_replace("~ ","",str_replace(["\n","\t"],["~",""],$ogrinfo))), $matches);			
 				$srtext = $matches[1];
 				$srparams = explode("],",substr($srtext,6,-1));
@@ -613,9 +601,8 @@ class FormatData extends Component
 			$updatesrid = !is_array($this->db->createCommand($sql)->execute());			
 			
 			$table = $this->prefix.str_replace(["{{%","}}"],"",Data::tableName())."_".$this->dataid;
-						
-			$path = __DIR__ . "/../../../../backend/runtime";
-			
+					
+			$path = $this->runtime;			
 			$filesql = $path."/".$table."_".$this->importId;								
 			
 			$append = false;
@@ -634,13 +621,15 @@ class FormatData extends Component
 			if ($this->postgis >= 2)
 			{
 				/* if use postgis 2 */									
-				$shp2pgsql = shell_exec("shp2pgsql -t 2D ".($append?"-a":"-d")." -s ".$srid." -g ".$geom_col." -W latin1 '".$file."' public.".$table." > ".$filesql);																					
+				$cmds = $this->shp2pgsql." -t 2D ".($append?"-a":"-d")." -s ".$srid." -g ".$geom_col." -W latin1 ".'"'.$file.'"'." public.".$table." > ".'"'.$filesql.'"';
+				$shp2pgsql = shell_exec($cmds);
 				/* end */
 			}
 			else
 			{
 				/* if use postgis 1.5 */
-				$shp2pgsql = shell_exec("shp2pgsql ".($append?"-a":"-d")." -s ".$srid." -g ".$geom_col." -W latin1 '".$file."' public.".$table." > ".$filesql);																								
+				$cmds = $this->shp2pgsql." ".($append?"-a":"-d")." -s ".$srid." -g ".$geom_col." -W latin1 ".'"'.$file.'"'." public.".$table." > ".'"'.$filesql.'"';
+				$shp2pgsql = shell_exec($cmds);
 				$str=file_get_contents($filesql);
 				$str=preg_replace('/ AddGeometryColumn\((.*),(\d+)\);/', ' AddGeometryColumn($1,2);',$str);
 				$str=preg_replace('/\'([A-Z0-9]+)\'\);/', 'ST_Force_2D(CAST(\'$1\' as text)));',$str);
@@ -672,7 +661,8 @@ class FormatData extends Component
 					WHERE id = ".$this->dataid;
 					$gtype = !is_array($this->db->createCommand($sql)->execute());
 				
-				$geoms = Data::itemAlias("geomtype");
+				$data = new Data();
+				$geoms = $data->itemAlias("geomtype");
 				$geomtype = 0;
 				
 				foreach ($geoms as $g=>$gt)
@@ -695,9 +685,23 @@ class FormatData extends Component
 			}
 			
 			preg_match('/port\=(\d+)?/', $this->db->dsn, $patches);
-			$portdb = (isset($patches[1])?'-p '.$patches[1].' ':'');		
+			$portdb = (isset($patches[1])?$patches[1]:'5432');
+			preg_match('/host\=(\d+)?/', $this->db->dsn, $patches);		
+			$hostdb = (isset($patches[1])?$patches[1]:'localhost');
 			
-			$psql = shell_exec("PGPASSWORD=".$this->dbpwd." psql ".$portdb."-q -w -U ".$this->dbusr." -d ".$this->dbname." < ".$filesql);
+			$cmds = str_replace('shp2pgsql','psql',$this->shp2pgsql).' "user='.$this->dbusr.' password='.$this->dbpwd.' host='.$hostdb.' port='.$portdb.' dbname='.$this->dbname.'" < "'.$filesql.'"';
+			/*
+			if ($this->iswin)
+			{
+				$cmds = str_replace('shp2pgsql','psql',$this->shp2pgsql).' "user='.$this->dbusr.' password='.$this->dbpwd.' host='.$hostdb.' port='.$portdb.' dbname='.$this->dbname.'" < "'.$filesql.'"';
+			}
+			else
+			{
+				$cmds = "PGPASSWORD=".$this->dbpwd." psql ".$portdb."-q -w -U ".$this->dbusr." -d ".$this->dbname." < ".'"'.$filesql.'"';
+			}
+			*/ 
+			
+			$psql = shell_exec($cmds);
 			
 			unlink($filesql);						
 			

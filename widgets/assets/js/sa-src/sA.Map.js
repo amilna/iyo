@@ -641,7 +641,14 @@ sA.Map.prototype.addLayer = function(lconf) {
 			name : lconf.name,
 			source : source,
 			style : function(feature, resolution) {
-												
+						
+						var prop = feature.getProperties();
+						
+						if (prop.HIDDEN === true)
+						{
+							return;	
+						}													
+						
 						var styles = [];
 												
 						if (sai.isObj(lconf.mkres))
@@ -673,6 +680,7 @@ sA.Map.prototype.addLayer = function(lconf) {
 						}												
 						
 						return styles;	
+
 				}	
 		});	
 		layer.conf = lconf;
@@ -1779,7 +1787,8 @@ sA.Map.prototype.initUiAttributes = function(f,layer) {
 													
 					map.sai.select[1].getFeatures().clear();				
 					f.setId(res.gid);				
-					//f.set('isModified',false);
+					f.set('isModified',false);
+					f.unset('isModified');
 					//layer.getSource().changed();
 					
 					layer.utfGrid.data = [];
@@ -1823,67 +1832,83 @@ sA.Map.prototype.initUiAttributes = function(f,layer) {
 	$("#delete-" + gid ).click(function(){
 		map.sai.wait();
 		var data = { _csrf : csrfToken};
-		map.sai.xhr(map.sai.reqUrl + "/iyo/record/rest/?data=" + lconf.dataId +"&id=" + gid ,function(jsonString){
-								
-			var res = JSON.parse(jsonString);			
-			if (res.status)
-			{												
-				setTimeout(function () {									
+		if (gid < 0)
+		{
+			try {
+				map.sai.layerEditor.getSource().removeFeature(f);
+			}
+			catch (e) {
+				
+			}
+			map.sai.select[1].getFeatures().clear();
+			$("#" + map.sai.id +" .iyo-attributes-message").css("display","block");
+			$("#" + map.sai.id +" .iyo-attributes-fields").html("");
+			map.sai.unwait();
+		}
+		else
+		{		
+			map.sai.xhr(map.sai.reqUrl + "/iyo/record/rest/?data=" + lconf.dataId +"&id=" + gid ,function(jsonString){
+									
+				var res = JSON.parse(jsonString);			
+				if (res.status)
+				{												
+					setTimeout(function () {									
+						try {
+							var f = map.sai.layerEditor.getSource().getFeatureById(gid);
+							map.sai.layerEditor.getSource().removeFeature(f);
+						}
+						catch (e) {}								
+						
+						map.sai.featureOnEdit = null;
+						
+						map.sai.select[1].getFeatures().clear();
+						//layer.getSource().changed();											
+						
+						layer.utfGrid.data = [];
+						
+						if (map.sai.isObj(layer.getSource().setTileUrlFunction))
+						{								
+							layer.getSource().setTileUrlFunction(parseUrl);				
+						}
+						
+						var evt = {map:map};
+						layer.utfGrid.fetch(evt,true);
+						
+						$("#" + map.sai.id +" .iyo-attributes-message").css("display","block");
+						$("#" + map.sai.id +" .iyo-attributes-fields").html("");
+					
+					},2000);
+				}
+				else			
+				{
+					var messg = JSON.parse($("#iyo-template-uiattributemessage").text());
+					if (map.sai.isObj(messg.deleteFailed))
+					{
+						alert(messg.deleteFailed);	
+					}
+					else
+					{
+						alert("Delete has failed!");	
+					}
+						
+				}
+				map.sai.unwait();
+												
+			},function(){
+				setTimeout(function () {												
 					try {
-						var f = map.sai.layerEditor.getSource().getFeatureById(gid);
 						map.sai.layerEditor.getSource().removeFeature(f);
 					}
-					catch (e) {}								
-					
-					map.sai.featureOnEdit = null;
-					
-					map.sai.select[1].getFeatures().clear();
-					//layer.getSource().changed();											
-					
-					layer.utfGrid.data = [];
-					
-					if (map.sai.isObj(layer.getSource().setTileUrlFunction))
-					{								
-						layer.getSource().setTileUrlFunction(parseUrl);				
+					catch (e) {
+						
 					}
-					
-					var evt = {map:map};
-					layer.utfGrid.fetch(evt,true);
-					
+					map.sai.select[1].getFeatures().clear();
 					$("#" + map.sai.id +" .iyo-attributes-message").css("display","block");
 					$("#" + map.sai.id +" .iyo-attributes-fields").html("");
-				
-				},2000);
-			}
-			else			
-			{
-				var messg = JSON.parse($("#iyo-template-uiattributemessage").text());
-				if (map.sai.isObj(messg.deleteFailed))
-				{
-					alert(messg.deleteFailed);	
-				}
-				else
-				{
-					alert("Delete has failed!");	
-				}
-					
-			}
-			map.sai.unwait();
-											
-		},function(){
-			setTimeout(function () {												
-				try {
-					map.sai.layerEditor.getSource().removeFeature(f);
-				}
-				catch (e) {
-					
-				}
-				map.sai.select[1].getFeatures().clear();
-				$("#" + map.sai.id +" .iyo-attributes-message").css("display","block");
-				$("#" + map.sai.id +" .iyo-attributes-fields").html("");
-				map.sai.unwait();
-			},5000);			
-		},[],'POST',data);
+					map.sai.unwait();
+				},5000);			
+			},[],'POST',data);
+		}
 	});
 	
 	$("#clean-" + gid ).click(function(){
@@ -1916,20 +1941,24 @@ sA.Map.prototype.initUiAttributes = function(f,layer) {
 				}
 			}		
 			
-			var clean = format.readFeature(
-				turf.erase(
-					format.writeFeatureObject(f),
-					format.writeFeatureObject(union)
-				)
-			);				
-			map.sai.layerEditor.getSource().removeFeature(f);
-			
-			clean.setId(gid);
-			map.sai.layerEditor.getSource().addFeature(clean);
-			
-			map.sai.select[1].getFeatures().clear();
-			map.sai.select[1].getFeatures().push(clean);
-			map.sai.initUiAttributes(clean,layer);
+			if (f && union)
+			{ 
+				//console.log(f,union);
+				var clean = format.readFeature(
+					turf.erase(
+						format.writeFeatureObject(f),
+						format.writeFeatureObject(union)
+					)
+				);				
+				map.sai.layerEditor.getSource().removeFeature(f);
+				
+				clean.setId(gid);
+				map.sai.layerEditor.getSource().addFeature(clean);
+				
+				map.sai.select[1].getFeatures().clear();
+				map.sai.select[1].getFeatures().push(clean);
+				map.sai.initUiAttributes(clean,layer);
+			}
 					
 			map.sai.unwait();		
 		}
@@ -2366,6 +2395,14 @@ sA.Map.prototype.unHighlightFeature = function(featureHighlight,isforced) {
 		var sai = this;				
 		var dstyle = function(resolution) {						
 						
+						var feature = featureHighlight[0];
+						var prop = feature.getProperties();
+						
+						if (prop.HIDDEN === true)
+						{
+							return;	
+						}
+						
 						var styles = [];
 						
 						var lconf = featureHighlight[1].conf;
@@ -2413,15 +2450,32 @@ sA.Map.prototype.getUtfGridData = function(evt,isall) {
 				"EPSG:3857", "EPSG:4326");
 	
 	var sai = evt.map.sai;	
+	/*
 	sai.featureHighlight = evt.map.forEachFeatureAtPixel(evt.pixel, function(feature, layer) {			
 		return [feature,layer];
-	});		
+	});
+	*/ 
+	
+	var f0 = false;
+	var fs = [];
+	evt.map.forEachFeatureAtPixel(evt.pixel, function(feature, layer) {			
+		fs.push(feature);
+		if (!f0) {
+			f0 = [feature,layer];
+		}	
+	});	
+	
+	//console.log(f0,fs);
+	if (f0)
+	{	
+		sai.featureHighlight = f0;
+	}
 		
 	var feature = null;
 	var layer = null;
-	if (sai.isObj(sai.featureHighlight))
+	if (sai.isObj(sai.featureHighlight) && f0)
 	{																
-		feature = sai.featureHighlight[0];		
+		feature = sai.featureHighlight[0];
 		if (sai.isObj(feature.get('features')))
 		{
 			var features = feature.get('features');
@@ -2499,6 +2553,7 @@ sA.Map.prototype.getUtfGridData = function(evt,isall) {
 		}		
 	}	
 	
+	/*
 	if (feature != null && sai.isObj(sai.featureHighlight))
 	{				
 		if (sai.isObj(feature.get('features')))
@@ -2517,6 +2572,26 @@ sA.Map.prototype.getUtfGridData = function(evt,isall) {
 			data.push([sai.featureHighlight[1],prop,feature]);				
 		}
 	}
+	*/
+	
+	if (feature != null && sai.isObj(sai.featureHighlight) && f0)
+	{				
+		if (fs.length > 1)
+		{
+			var features = fs;
+			for (var f=0;f<features.length;f++)
+			{
+				var afeature = features[f];
+				var prop = afeature.getProperties();			
+				data.push([sai.featureHighlight[1],prop,feature]);				
+			}
+		}
+		else
+		{	
+			var prop = afeature.getProperties();			
+			data.push([sai.featureHighlight[1],prop,feature]);				
+		}
+	} 
 	
 	return data;				
 };	
@@ -2531,7 +2606,14 @@ sA.Map.prototype.highlightFeature = function(feature,layer) {
 	this.featureHighlight = [feature,layer];		
 		
 	var sai = this;				
-	var dstyle = function(resolution) {						
+	var dstyle = function(resolution) {		
+					
+					var prop = feature.getProperties();
+						
+					if (prop.HIDDEN === true)
+					{
+						return;	
+					}		
 					
 					var styles = [];
 					
@@ -3083,6 +3165,13 @@ sA.Map.prototype.mapOnMouseClick = function(evt) {
 									}
 									else
 									{									
+										
+										//if (sai.inArray(ugdata[0].conf.type,['geojson']) < 0)
+										//{
+											//console.log('tes',ugdata);
+											str = '<a class="sAfilterLayer" data-lay="'+ugdata[0].conf.name+'" data-col="'+field.name+'" data-val="'+str+'" >' + str + '</a>';	
+										//}
+										
 										var otext = "<strong>" + field.alias + "</strong> " + str;										
 										if (textf.indexOf(otext) < 0 && textd.indexOf(otext) < 0)
 										{
@@ -3127,7 +3216,10 @@ sA.Map.prototype.mapOnMouseClick = function(evt) {
 		}
 		else
 		{
-			
+			if (sai.isObj(sai.draw))
+			{
+				disinfo = false;	
+			}	
 		}		
 	}
 		
@@ -3144,32 +3236,62 @@ sA.Map.prototype.mapOnMouseClick = function(evt) {
 		
 		var text = textf + (textf == ""?"":"<br>") + textd; 	
 		text = text.replace(/null/g,"");
+		
+		var overlays = evt.map.getOverlays().getArray();
+			
+		var pos = evt.coordinate;
+		if (sai.featureHighlight[0] != null)
+		{
+			var px = evt.map.getPixelFromCoordinate(pos);
+			pos = evt.map.getCoordinateFromPixel([px[0],px[1]-20]);				
+		}
+												
+		overlays[0].setPosition(pos);
+		
+		var hdms = ol.coordinate.toStringHDMS(ol.proj.transform(
+			evt.coordinate, "EPSG:3857", "EPSG:4326")).replace("S ","S<br>").replace("N ","N<br>");
+		
+		hdms = '<font style="font-size:9px;">'+hdms+'</font>';	
+			
+		//console.log(lonlat);
+		var src = 'https://www.google.com/maps/@'+lonlat[1]+','+lonlat[0]+',3a,75y,94.1t/data=!3m3!1e1!3m1!2e0?hl=en';
+		var dtext = text+(text == ""?"":"<hr>")+"<a href='"+src+"' title='Street View' target='blank' class='sAgsv pull-left btn btn-success' style='margin:0px 10px 10px 0px;'><i class='fa fa-street-view'></i></a> "+hdms+"";
+		
+		sai.popup.find(".iyo-popup-content").html(dtext.replace(/null/g,""));	
+		sai.popup.find(".iyo-popup-closer").css("display","block");
+		sai.popup.css("display","block");				
+		
 					
 		if (text != "")
 		{													
-			var overlays = evt.map.getOverlays().getArray();
 			
-			var pos = evt.coordinate;
-			if (sai.featureHighlight[0] != null)
-			{
-				var px = evt.map.getPixelFromCoordinate(pos);
-				pos = evt.map.getCoordinateFromPixel([px[0],px[1]-20]);				
-			}
-													
-			overlays[0].setPosition(pos);
+			$('.sAfilterLayer,.sAgsv').css('cursor','pointer');
+			$('.sAfilterLayer').click(function(){
+				var lay = $(this).attr('data-lay');
+				var col = $(this).attr('data-col');
+				var val = $(this).attr('data-val');
+				var act = $(this).attr('data-act');
+				//console.log(act);
+				if (act == 'aktif')
+				{
+					sai.filterLayer(lay);
+					$(this).attr('data-act',false);
+				}
+				else
+				{
+					sai.filterLayer(lay,col,'\''+val+'\'');
+					$(this).attr('data-act','aktif');
+				}	
+			});
 			
-			sai.popup.find(".iyo-popup-content").html(text.replace(/null/g,""));	
-			sai.popup.find(".iyo-popup-closer").css("display","block");
-			sai.popup.css("display","block");				
-			
-			var zoom = sai.map.getView().getZoom();		
-			//sai.mapPanZoom(evt.coordinate,(zoom<10?Math.min(zoom+2,19):zoom),[0,50]);			
-			sai.mapPanZoom(evt.coordinate,zoom,[-50,80]);
+			//var zoom = sai.map.getView().getZoom();		
+			////sai.mapPanZoom(evt.coordinate,(zoom<10?Math.min(zoom+2,19):zoom),[0,50]);			
+			//sai.mapPanZoom(evt.coordinate,zoom,[-50,80]);
 		}	
-		else
-		{
-			sai.popup.css("display","none");
-		}
+		//else
+		//{
+		//	sai.popup.css("display","none");
+		//}
 	
 	}
 	
@@ -3193,6 +3315,122 @@ sA.Map.prototype.reformat = function(str,from,to) {
 		}					
 	}
 	return str;
+};
+
+sA.Map.prototype.filterLayer = function(layname,col,val,op) {
+	if (this.isObj(layname))
+	{
+		var layid = this.getLayerId(layname);
+		var lays = layid[0];
+		for (l in lays)
+		{
+			var layer = lays[l];
+			
+			if (!this.isObj(layer.conf))
+			{
+			
+			}
+			else
+			{			
+				var enfix = '';
+				if (this.isObj(layer.conf.urls))
+				{
+					
+					var urls = layer.conf.urls[0].split('?q=');
+					var url0 = urls[0];
+					var enfix = (urls.length > 1?urls[1]:enfix);
+					
+					if (this.isObj(col) && this.isObj(val))
+					{
+						var isgroup = (val.substr(0,1) == "["?true:false);
+						if (enfix == '')
+						{
+							enfix = "[\""+col+"\",\""+(this.isObj(op)?op:"=")+"\","+(isgroup?"":"\"")+val+(isgroup?"":"\"")+"]";
+						}
+						else
+						{
+							enfix = "["+enfix+",\"and\",[\""+col+"\",\""+(this.isObj(op)?op:"=")+"\","+(isgroup?"":"\"")+val+(isgroup?"":"\"")+"]]";
+						}	
+					}
+				}
+				
+				enfix = (enfix == ''?'':'?q=')+enfix;
+				
+				var url1 = url0+enfix;
+				
+				var parseUrl = function (tileCoords, pixelRatio, projection) {						
+					var url = url1;
+					url = url.replace('{z}', tileCoords[0] || 0);
+					url = url.replace('{x}', tileCoords[1] || 0);
+					url = url.replace('{y}', tileCoords[2] || 0);				
+					
+					//layer.utfGrid.data = [];
+					return url;
+				};												
+				
+				if (this.inArray(layer.conf.type,['geojson']) < 0)
+				{
+					//console.log(layer.conf,enfix);
+					layer.getSource().setTileUrlFunction(parseUrl);	
+				}
+				else
+				{
+					if (typeof layer.utfGrid != "undefined")
+					{
+						var source = new ol.source.Vector({					
+							features: []
+						});
+						
+						layer.setSource(source);
+					}
+					else
+					{
+						var fs = layer.getSource().getFeatures();
+						
+						if (this.isObj(col) && this.isObj(val))
+						{
+							val = (val.substr(0,1) == "'"?val.substr(1,val.length-2):val);
+							for( i = 0; i < fs.length; i++ ) {
+								var f = fs[i];
+								f.set('HIDDEN',(f.get(col) != val));
+								//console.log(f,f.get(col),val,(f.get(col) != val));
+							}	
+						}
+						else
+						{
+							for( i = 0; i < fs.length; i++ ) {
+								var f = fs[i];
+								f.set('HIDDEN',false);
+							}	
+						}		
+					}
+				}
+				
+				if (typeof layer.utfGrid != "undefined")
+				{							
+					var lconf = layer.conf;												
+					var urls = [];
+					for (var u=lconf.urls.length-1;u>=0;u--)
+					{
+						var urls0 = lconf.urls[u].split('?q=');
+						var url0 = urls0[0];
+						if (url0 != '')
+						{
+							var url = url0+enfix;					
+							urls.push(url.replace(".png",".json"));
+						}
+					}								
+					layer.utfGrid.urls = urls;	
+					layer.utfGrid.data = [];				
+					
+					var evt = {map:this.map};
+					layer.utfGrid.fetch(evt);
+				}
+				
+					
+			}
+		}
+	}
 };
 
 sA.Map.prototype.initUi = function() {

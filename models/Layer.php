@@ -250,7 +250,9 @@ class Layer extends \yii\db\ActiveRecord
 				
 		$res = $this->db->pdo->exec($sql);
 		
-		$clear = \amilna\iyo\components\Tilep::clearTile($this->id,false,true);
+		$tilep = new \amilna\iyo\components\Tilep();
+        $clear = $tilep->clearTile($this->id,false,true);
+        
 			
 		parent::afterSave($insert, $changedAttributes);
 	}   

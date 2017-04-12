@@ -150,7 +150,7 @@ class Tilep:
 				dvar = rvar.sub("", str(qray[0]))				
 				dvarl = re.match(r"([a-zA-Z0-9_\.]+)", dvar)			
 						
-			dopl = re.match(r"^(like|and|or|!=|=|<|>|<=|>=)$",str(qray[1]).lower())
+			dopl = re.match(r"^(like|not like|and|or|!=|=|<|>|<=|>=)$",str(qray[1]).lower())
 			
 			dparaml = qray
 			if isinstance(qray[2], list) :
@@ -161,7 +161,7 @@ class Tilep:
 				dparaml = re.match(r"([a-zA-Z0-9_ \%\']+)", dparam)																		
 			
 			if dvarl != None and dopl != None and dparaml != None :
-				if dopl.group(1) == 'like':
+				if dopl.group(1) == 'like' or dopl.group(1) == 'not like':
 					qray = "(lower("+dvar+") "+dopl.group(1)+" "+dparam.lower()+")"								
 				else :	
 					dop = dopl.group(1).replace('<','&lt;').replace('>','&gt;')	

@@ -116,7 +116,12 @@ class RecordController extends Controller
         
         $module = Yii::$app->getModule('iyo');
 		$geom_col = $module->geom_col;
-        $model->$geom_col = $model->geojson;        
+		
+		
+		if ($model->hasAttribute($geom_col))
+		{
+			$model->$geom_col = $model->geojson;        
+		}
         
         if ($format == 'json')
         {
@@ -145,6 +150,8 @@ class RecordController extends Controller
         $model = new Record($data);
 			
         if ($model->load(Yii::$app->request->post()) && $model->save()) {
+			$tilep = new \amilna\iyo\components\Tilep();
+			$clear = $tilep->clearTile($model->data->id,true,true);
             return $this->redirect(['view', 'id' => $model->gid,'data'=>$model::$dataId]);
         } else {
             return $this->render('create', [
@@ -169,6 +176,8 @@ class RecordController extends Controller
         $model = $this->findModel($data,$id);
 
         if ($model->load(Yii::$app->request->post()) && $model->save()) {
+			$tilep = new \amilna\iyo\components\Tilep();
+			$clear = $tilep->clearTile($model->data->id,true,true);
             return $this->redirect(['view', 'id' => $model->gid,'data'=>$model::$dataId]);
         } else {
             return $this->render('update', [
@@ -200,12 +209,33 @@ class RecordController extends Controller
 			$model->delete(); //this will true delete
 		}
         
+        $tilep = new \amilna\iyo\components\Tilep();
+        $clear = $tilep->clearTile($model->data->id,true,true);
+        
         if ($format=='json')
         {
 			return json_encode(['status'=>true]);	
 		}
         
         return $this->redirect(['index','data'=>$model::$dataId]);
+    }
+    
+    public function actionEmpty($data)
+    {        
+		if ($data)
+        {
+			$model = new Record($data);
+			$models = $model->deleteAll('gid >= 0');        
+			
+			$tilep = new \amilna\iyo\components\Tilep();
+			$clear = $tilep->clearTile($model->data->id,true,true);
+        
+			return $this->redirect(['index','data'=>$model::$dataId]);
+		}
+		else
+		{
+			return $this->redirect(['//iyo/data/index']);
+		}	
     }
 
     /**
@@ -328,18 +358,59 @@ class RecordController extends Controller
 						$string = json_encode($coordinates);										
 						//echo $string."\n";												
 						
-						$string = preg_replace(['/\[([0-9\-\.]+),([0-9\-\.]+)\]/'], ['$1 $2'], $string);								
+						$string = str_replace(['null',''], ['0',''], $string);
+						$string = preg_replace(['/\[([e0-9\-\.]+),([e0-9\-\.]+)\]/'], ['$1 $2'], $string);
+						//$string = str_replace(['[',']'], ['(',')'], $string);
+						
+						/*
+						if ($rec['gid'] < 0)
+						{
+							die($string);
+						}
+						*/ 
+						
+						//echo $string."\n";
+						
+						$string = preg_replace(['/\[([e0-9\-\.]+),([e0-9\-\.]+),([e0-9\-\.]+),([e0-9\-\.]+)\]/'], ['$1 $2'], $string);
 						$string = str_replace(['[',']'], ['(',')'], $string);
+						
+						
 																		
 						$string = $tipe.' '.$string;
+						
+						//die('tes '.$string);
+						
+						$string = preg_replace(['/POINT ([e0-9\-\.]+) ([e0-9\-\.]+)/'], ['POINT ($1 $2)'], $string);
+						
 						
 						$geom2 = $model->db->createCommand(
 								"SELECT (ST_Multi(ST_Transform(ST_GeomFromText(:val,4326),:srid))) as g"
 							)->bindValues([":val"=>$string,":srid"=>$srid])->queryScalar();
+						
+						/*
+						if ($rec['gid'] < 0)
+						{
+							die($string);
+						}
+						*/ 
+						
 							
 						$geom1 = $model->db->createCommand(
 								"SELECT (ST_Transform(ST_GeomFromText(:val,4326),:srid)) as g"
 							)->bindValues([":val"=>$string,":srid"=>$srid])->queryScalar();																
+							
+						
+						/*
+						$geom2 = $model->db->createCommand(
+								"SELECT (ST_Multi(ST_Transform(ST_Force2D(:val),:srid))) as g"
+							)->bindValues([":val"=>$string,":srid"=>$srid])->queryScalar();
+						
+							
+						$geom1 = $model->db->createCommand(
+								"SELECT (ST_Transform(ST_Force2D(:val),:srid)) as g"
+							)->bindValues([":val"=>$string,":srid"=>$srid])->queryScalar();
+						*/
+						//$geom2 = $geom1;	
 												
 					}					
 					
@@ -351,9 +422,11 @@ class RecordController extends Controller
 					$model->$geom_col = $geom1;		
 				}
 				
-				if ($model->validate()) {					
+				if ($model->validate()) {
+														
+					//catch (\PDOException $e)
 					try {
-						$res = $model->save();
+						$res = $model->save();						
 					}
 					catch (yii\db\Exception $e)
 					{
@@ -382,7 +455,8 @@ class RecordController extends Controller
 			{				
 				if ($clear == 1)
 				{
-					$clear = \amilna\iyo\components\Tilep::clearTile($model->data->id,true,true);
+					$tilep = new \amilna\iyo\components\Tilep();
+					$clear = $tilep->clearTile($model->data->id,true,true);
 				}
 			}			
 		} 

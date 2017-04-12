@@ -38,6 +38,9 @@ class Module extends \yii\base\Module
 	public $sslCert = '';
 	public $maxZoomCache = -1; /* -1 for no disk cache, range 0 -19 */
 	
+	public $python = 'python';
+	public $php = 'php';
+	
 	public $urls = [];
 
     public function init()

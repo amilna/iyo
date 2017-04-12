@@ -78,7 +78,7 @@ class PageController extends \amilna\blog\controllers\PageController
         $model = false;
         if ($id == false)
         {
-			$model = StaticPage::find()->orderBy('status DESC')->one();
+			return $this->redirect(['//iyo/page/featured/']);
 		}
         
         if (!$model)
@@ -86,6 +86,11 @@ class PageController extends \amilna\blog\controllers\PageController
 			if ($id)
 			{
 				$model = $this->findModel($id);
+				
+				if (!in_array($model->status,[4,6]))
+				{
+					return $this->redirect(['index']);
+				}
 			}	
 			else
 			{
@@ -275,6 +280,11 @@ class PageController extends \amilna\blog\controllers\PageController
 							$query->limit($json['limit']);
 						}
 						
+						if (isset($json['offset']))
+						{
+							$query->offset($json['offset']);
+						}
+						
 						//try {
 							$rows = $query->all();									
 						//} catch (\yii\db\Exception $e) {
@@ -290,6 +300,29 @@ class PageController extends \amilna\blog\controllers\PageController
 		die(json_encode($res));	
 		
 	}
+	
+	public function actionFeatured()
+    {
+        
+		$model = StaticPage::find()->orderBy('status DESC')->one();
+		   
+        if ($model == false)
+        {
+			return $this->redirect(['index']);
+		}
+		else
+		{
+			if (!in_array($model->status,[4,6]))
+			{
+				return $this->redirect(['index']);
+			}	
+		}
+        
+		return $this->render('view', [
+			'model' => $model,
+		]);
+	
+    }
 
  
 }

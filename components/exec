@@ -57,6 +57,7 @@ foreach ($argv as $a)
 		
 }
 
+
 if (!empty($dsn) && !empty($username)&& !empty($password) && !empty($param) && $action == 'import')
 {		
 	$format = new \amilna\iyo\components\FormatData($dsn,$tablePrefix,$username,$password,$param);

@@ -86,7 +86,16 @@ $this->params['breadcrumbs'][] = $this->title;
             // 'time',
             // 'isdel',
 
-            ['class' => 'kartik\grid\ActionColumn'],
+            //['class' => 'kartik\grid\ActionColumn'],
+            [
+				'class' => 'kartik\grid\ActionColumn',
+				'template' => '{view} {edit} {update} {delete}',				
+				'buttons'=>[
+					'edit'=>function ($url, $model, $key) {
+						return Html::a('<span class="glyphicon glyphicon-edit"></span>',["edit","id"=>$model->id,"title"=>$model->title],["title"=>Yii::t("yii","Edit")]);
+					},						
+				]
+			],
         ],
     ]); ?>
 

@@ -156,11 +156,10 @@ class Data extends \yii\db\ActiveRecord
     public function afterSave($insert, $changedAttributes)
     {				
 		$res = true;
-		//if ($insert)		
-		if (true);
+		if ($res);
 		{			
 			$module = Yii::$app->getModule('iyo');
-			$uploadDir = \Yii::getAlias($module->uploadDir);			
+			$uploadDir = \Yii::getAlias($module->uploadDir).'/'.$module->geosDir.'/';			
 			$tileDir = \Yii::getAlias($module->tileDir);
 			$geom_col = $module->geom_col;				
 			
@@ -172,37 +171,29 @@ class Data extends \yii\db\ActiveRecord
 				$oldprocess->stop();
 			}
 			
-			/*
-			$prefix = $this->db->tablePrefix;
-			$table = $prefix.str_replace(["{{%","}}"],"",Data::tableName())."_".$this->id;			
-			$res = FormatData::mkData($table,$geom_col,$this->type);						
-			$cols = isset($this->metadata["columns"])?$this->metadata["columns"]:[];			
-			foreach ($cols as $col)
-			{									
-				$res0 = FormatData::mkColumn($table,$col,$geom_col);
-				$res = ($res == false?false:$res0);
-			}
-			*/ 			
-			
 			$dsn = $this->db->dsn;
 			$tablePrefix = $this->db->tablePrefix;
 			$username = $this->db->username;
 			$password = $this->db->password;				
 			
-			$param = $uploadDir.":".$tileDir.":".$geom_col.":".$this->id.":".Yii::$app->user->id.":".$module->postgis;
+			$param = $uploadDir."~".$tileDir."~".$geom_col."~".$this->id."~".Yii::$app->user->id."~".$module->postgis."~".$module->gdalinfo."~".$module->shp2pgsql."~".Yii::getAlias('@runtime');
 			$path = \Yii::getAlias("@amilna/iyo/components");			
 			$execFile = \Yii::getAlias($module->execFile);			
-			$cmd = $execFile." -action='import' -dsn='".$dsn."' -tablePrefix='".$tablePrefix."' -username='".$username."' -password='".$password."' -param='".$param."'";
+			$cmd = $module->php.' "'.$execFile.'" -action="import" -dsn="'.$dsn.'" -tablePrefix="'.$tablePrefix.'" -username="'.$username.'" -password="'.$password.'" -param="'.$param.'"';
+			 
 			//die($cmd);			
 			$process = new Process($cmd);
 						
+			$pid = $process->getPid();
 			
-			$sql = "UPDATE ".Data::tableName()." 
-				SET pid = ".$process->getPid()."
-				WHERE id = ".$this->id;
-				
-			$res = $this->db->createCommand($sql)->execute();			
-			
+			if (!empty($pid))
+			{
+				$sql = "UPDATE ".Data::tableName()." 
+					SET pid = ".$pid."
+					WHERE id = ".$this->id;
+					
+				$res = $this->db->createCommand($sql)->execute();			
+			}
 			
 			/* generate layer if raster */
 			if ($this->type == 6)
@@ -236,7 +227,7 @@ class Data extends \yii\db\ActiveRecord
 															
 					$file = \amilna\yap\Helpers::shellvar($file);		
 					
-					$gdalinfo = shell_exec("gdalinfo '".$file."'");						
+					$gdalinfo = shell_exec($module->gdalinfo." '".$file."'");						
 					preg_match('/Lower Left([ ]+)\(([ ]+)?(-?[0-9\.]+),([ ]+)?(-?[0-9\.]+)\)/', $gdalinfo, $min);		
 					preg_match('/Upper Right([ ]+)\(([ ]+)?(-?[0-9\.]+),([ ]+)?(-?[0-9\.]+)\)/', $gdalinfo, $max);
 					preg_match('/\n    AUTHORITY\[\"EPSG\",\"(\d+)\"\]/', $gdalinfo, $epsg);																
@@ -252,13 +243,15 @@ class Data extends \yii\db\ActiveRecord
 						$bbox = $this->db->createCommand('SELECT ST_Extent(ST_Transform(ST_MakeEnvelope('.$bbox.','.$epsg[1].'),4326)) as bbox')->queryScalar();
 						$bbox = preg_replace('/BOX\((-?[0-9\.]+) (-?[0-9\.]+),(-?[0-9\.]+) (-?[0-9\.]+)\)/','$1,$2,$3,$4',$bbox);						
 						
-						$clear = \amilna\iyo\components\Tilep::clearTile($this->id,true,true,$bbox);
+						$tilep = new \amilna\iyo\components\Tilep();
+						$clear = $tilep->clearTile($this->id,true,true,$bbox);
 					}	
 				}	
 			}
 			else
 			{
-				$clear = \amilna\iyo\components\Tilep::clearTile($this->id,true,true);
+				$tilep = new \amilna\iyo\components\Tilep();
+				$clear = $tilep->clearTile($this->id,true,true);
 			}
 			
 		}
@@ -274,157 +267,6 @@ class Data extends \yii\db\ActiveRecord
 	}
 	
 
-	
-	
-	/**
-     * Do import file into postgis geometry.
-     * If import is successful, it will redirect to data view.
-     * @param string $filename
-     * @return boolean
-     */
-    private function importFile($filename = false)
-    {        		
-		
-		$ext = Data::checkFileExt($filename);
-		if ($ext)
-		{						
-			$module = Yii::$app->getModule('iyo');
-			$path = \Yii::getAlias($module->uploadDir);
-			$path = $path."/geos/";
-			$db = Yii::$app->db;
-			$dsn = $db->dsn;
-			preg_match('/dbname\=(.*)?/', $db->dsn, $matches);			
-			$dbname = $matches[1];
-			$prefix = $db->tablePrefix;
-			$dataid = $this->id;
-			
-			
-			
-			
-			$file = $path.$filename;
-			
-			
-						
-			if (file_exists($file) && $ext == ".shp")
-			{											
-												
-				$file = \amilna\yap\Helpers::shellvar($file);		
-			
-				$proj4 = shell_exec("gdalsrsinfo -o proj4 '".$file."'");
-				$ogrinfo = shell_exec("ogrinfo '".$file."' '".basename($file,".shp")."' -so");					
-					
-				$srid = "";
-				if (strpos($proj4,"ERROR") === false)
-				{				
-					$srparams = explode(" ",trim(str_replace("'","",$proj4)));
-					$sql = "SELECT auth_srid FROM spatial_ref_sys WHERE proj4text='".trim(str_replace("'","",$proj4))."'";
-					
-					$nsql = "";
-					foreach ($srparams as $sr)
-					{					
-						$nsql .= ($nsql == ""?"":" AND ")."proj4text LIKE '%".$sr."%'";
-					}
-					$sql .= ($nsql==""?"":" OR (".$nsql.")");
-					
-					$srid = $this->db->createCommand($sql)->queryScalar();
-										
-					/*
-					$ogrinfo = shell_exec("ogrinfo '".$file."' '".basename($file,".shp")."' -so");								
-					preg_match('/Layer SRS WKT\:\~(\S*)\~/', preg_replace("/\,(\s*)/",",",str_replace("~ ","",str_replace(["\n","\t"],["~",""],$ogrinfo))), $matches);			
-					$srtext = $matches[1];
-					$srparams = explode("],",substr($srtext,6,-1));
-					$sql = "SELECT auth_srid FROM spatial_ref_sys WHERE srtext='".$srtext."'";
-					foreach ($srparams as $sr)
-					{
-						$sr .= (substr($sr,-1) == "]"?"":"]");
-						$sql .= " OR srtext LIKE '%".preg_replace('/(\S*)DATUM/',"",$sr)."%'";
-					}								
-					$srid = $this->db->createCommand($sql)->queryScalar();
-					*/ 
-				}
-				else
-				{																				
-					preg_match('/Extent\:(.*)/', $ogrinfo, $matches);								
-					$extent = explode(",",preg_replace('/[^0-9\.\,\-]/',"",str_replace(") - (",",",$matches[1])));
-					if ($extent[0] < -180 && $extent[1] < -90  && $extent[2] > 180 && $extent[3] > 90)
-					{
-						$srid = "3857";
-					}					
-				}
-				$srid = ($srid==""?"4326":$srid);																
-				
-				preg_match('/Geometry\:(.*)/', $ogrinfo, $matches);
-				if (isset($matches[1]))
-				{
-					$geom = strtolower(trim($matches[1]));				
-					$geoms = $this->itemAlias("geomtype");
-					$geomtype = false;
-					
-					foreach ($geoms as $g=>$gt)
-					{
-						$gt= strtolower(str_replace(" ","",$gt));						
-						if (strpos($gt,$geom) !== false && !$geomtype)
-						{
-							$geomtype = $g;								
-						}						
-					}
-					
-					if ($geomtype)
-					{
-						$sql = "UPDATE ".Data::tableName()." 
-						SET type = ".$geomtype." 
-						WHERE id = ".$this->id;
-						$updatetype = $this->db->createCommand($sql)->execute();					
-					}
-				}
-				
-				$table = $prefix.str_replace(["{{%","}}"],"",Data::tableName())."_".$this->id;
-				$filesql = $path.Yii::$app->user->id."_".$table."_".time();
-								
-				$filesql = \amilna\yap\Helpers::shellvar($filesql);			
-				$table = \amilna\yap\Helpers::shellvar($table);	
-				$file = \amilna\yap\Helpers::shellvar($file);		
-				
-				$shp2pgsql = shell_exec("shp2pgsql -s ".$srid." -W latin1 '".$file."' public.".$table." > ".$filesql);								
-				
-				$sql = "DROP TABLE IF EXISTS ".$table."";
-				$drop = $this->db->createCommand($sql)->execute();
-				
-				$psql = shell_exec("psql -d ".$dbname." < ".$filesql);
-				unlink($filesql);
-				
-				$sql = "SELECT column_name,data_type,character_maximum_length 
-					FROM information_schema.columns 
-					WHERE table_name='".$table."'";
-
-				$ext = $this->db->createCommand($sql)->queryAll();
-			}
-			elseif (file_exists($file) && $ext == ".zip")
-			{
-				$basefile = preg_replace('/\.(\d+)\.zip/',"",$file);
-				
-				$session = Yii::$app->session;
-				$session["iyo-data-importid"] = Yii::$app->user->id."_".date('U');
-				
-				$basefile = \amilna\yap\Helpers::shellvar($basefile);	
-				
-				$seqrun = shell_exec("touch ".$path."start_".$session["iyo-data-importid"].";
-					cat '".$basefile.".*' > '".$basefile.".zip';
-					unzip '".$basefile.".zip' '".$basefile."';				
-				");
-			}
-		}
-		
-        return $ext;
-    }
-    
-    public function getProcess()
-    {
-		$process = new Process();
-		$process->setPid = $this->pid;
-		return $process->status();
-	}
-	
 	public function getTags()
 	{
 		$models = $this->find()->all();

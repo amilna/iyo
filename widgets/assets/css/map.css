@@ -140,10 +140,24 @@
 	
 	canvas.ol-unselectable {
 		width:auto!important;
-		height:auto!important;
+		height:100%!important;
 		#display:block!important;
 	}
-		
+	
+	.iyo-popup
+	{
+		background-color: initial!important;
+		padding: 0px;
+	}
+	
+	.iyo-popup-content {
+		background-color: white!important;
+		margin-top:0px!important;
+		margin: 0px;
+		padding: 10px;
+		border-radius: 10px;
+		overflow:hidden!important;
+	}	
 }
 
 /**** IYO ****/
@@ -318,7 +332,7 @@
 	margin:1px!important;
 	border-radius: 2px;
 	border: 1px solid rgba(200,200,200,0.7);
-	width:63px!important;		
+	width:62px!important;		
 	cursor:pointer;
 	float:left;
 }

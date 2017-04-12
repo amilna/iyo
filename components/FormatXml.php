@@ -468,8 +468,13 @@ class FormatXml extends Component
 					}					
 					elseif (count($jointon) > 0)
 					{
+						//$jointon[1] = "[[10,'ON t.key = j10.key']]";
+						$jointon[1] = '[[1,""],[10,"ON t.key = j10.key"]]';
 						$joints = json_decode($jointon[1],true);
 						$sql = false;						
+						
+						//print_r($joints);
+						//die($jointon[1]);
 						
 						if (is_array($joints))
 						{							

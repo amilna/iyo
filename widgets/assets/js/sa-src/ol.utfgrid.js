@@ -22,6 +22,13 @@ ol.utfGrid = function(opt_options) {
 		}	
 		this.map.utfGridMoveEndKey = this.map.on('moveend', this.fetch);
 		
+		/*
+		if (this.isObj(this.map.utfGridZoomEndKey)) {		
+			this.map.getView().unByKey(this.map.utfGridZoomEndKey);
+		}
+		this.map.utfGridZoomEndKey = this.map.getView().on('change:resolution', this.fetch);
+		*/
+		
 		if (this.isObj(this.map.utfGridPointerMoveKey)) {		
 			this.map.unByKey(this.map.utfGridPointerMoveKey);
 		}	
@@ -118,16 +125,51 @@ ol.utfGrid.prototype.fixLonlat = function(lonlat)
 	return lonlat;
 };	
 
+ol.utfGrid.prototype.getZoom = function()
+{
+	var map = this.map;
+	
+	var zoom = map.getView().getZoom();
+	if (typeof zoom == "undefined")
+	{
+		var offset;
+		var resolution = map.getView().getResolution();
+		//console.log(map.getView().getResolution(),map.getView().getKeys(),map.getView().get('minResolution'));
+		var xr = map.getView().maxResolution_;
+		var nr = map.getView().minResolution_;
+		var nz = map.getView().minZoom_;
+		
+		xr = (typeof xr == "undefined"?map.getView().b:xr);
+		nr = (typeof nr == "undefined"?map.getView().f:nr);
+		nz = (typeof nz == "undefined"?map.getView().d:nz);
+		
+		if (typeof resolution != "undefined") {
+			var res, z = 0;
+			do {
+				res = map.getView().constrainResolution(xr, z);
+				if (res <= resolution) {
+					offset = z-1;
+					break;
+				}
+				++z;
+			} while (res > nr);
+		}
+
+		zoom = (typeof offset != "undefined"? nz + offset : offset);
+		//console.log('zoom',zoom,map.getView(),nz,offset);
+	}
+	return zoom;
+};
 
 ol.utfGrid.prototype.fetch = function(evt,forceRefresh)
 { 	
 	var map = evt.map;					
 	
-	var zoom0 = map.getView().getZoom(); 
+	var zoom0 = map.utfGrids[0].getZoom(); 
 	var center0 = map.getView().getCenter();
 	
 	setTimeout(function () {
-		var zoom = map.getView().getZoom(); 
+		var zoom = map.utfGrids[0].getZoom();
 		var center = map.getView().getCenter();
 		
 		if (zoom == zoom0 && center == center0)
@@ -163,9 +205,7 @@ ol.utfGrid.prototype.fetch = function(evt,forceRefresh)
 					if (lyr.get('name') == ug.name) {
 						fetch = lyr.getVisible();												
 					} 						
-				});		
-				
-				
+				});					
 				
 				if (fetch)
 				{					
@@ -291,20 +331,25 @@ ol.utfGrid.prototype.fetch = function(evt,forceRefresh)
 								var tile = params[1];
 								if (jsonp.substr(0,5) == 'grid(')
 								{
-									dug.data[tile[0]][tile[1]][tile[2]] = JSON.parse(jsonp.substr(5,jsonp.length-6));
-								}
-								
-								if (dug.isObj(dug.data[tile[0]][tile[1]][tile[2]]))
-								{
-									if (dug.data[tile[0]][tile[1]][tile[2]] != null)
-									{
-										if (dug.data[tile[0]][tile[1]][tile[2]]["keys"].length > 1 && dug.render)
-										{						
-											dug.renderPoint(tile);						
-										}
+									if (dug.isObj(dug.data[tile[0]]))
+									{									
+										dug.data[tile[0]][tile[1]][tile[2]] = JSON.parse(jsonp.substr(5,jsonp.length-6));
 									}
 								}
 								
+								if (dug.isObj(dug.data[tile[0]]))
+								{
+									if (dug.isObj(dug.data[tile[0]][tile[1]][tile[2]]))
+									{
+										if (dug.data[tile[0]][tile[1]][tile[2]] != null)
+										{
+											if (dug.data[tile[0]][tile[1]][tile[2]]["keys"].length > 1 && dug.render)
+											{						
+												dug.renderPoint(tile);						
+											}
+										}
+									}
+								}
 								if (dug.finishEvent != null && (tile == tiles[tiles.length-1] || tiles.length == 0 ) )
 								{									
 									dug.finishEvent(ug);																		
@@ -371,7 +416,8 @@ ol.utfGrid.prototype.lonlat2tile = function(lonlat,zoom)
 
 ol.utfGrid.prototype.getData = function(lonlat,ug) {	
 	ug = (typeof ug != "undefined"?ug:this);
-	var zoom = this.map.getView().getZoom();
+	//var zoom = this.map.getView().getZoom();
+	var zoom = ug.getZoom();
 	
 	var g = ug.lonlat2tile(lonlat,zoom);
 	try {				

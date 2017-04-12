@@ -61,7 +61,7 @@ $kcfOptions = array_merge([], [
 			<?= $form->field($model, 'remarks')->textarea(['rows' => 6]) ?>			
 		</div>
 		<div class='col-sm-6'>
-			<a class="pull-right btn <?php
+			<a class="btn <?php
 				if (in_array($model->status,[0,5]))
 				{
 					echo 'btn-danger';	
@@ -81,6 +81,13 @@ $kcfOptions = array_merge([], [
 			 ?>">
 				<?= $model->itemAlias('status',$model->status)?>
 			</a>
+			
+			<?php
+			
+				echo Html::a('Empty',['/iyo/record/empty','data'=>$model->id],['class'=>'pull-right btn btn-danger']);
+			
+			?>
+			<hr>
 			<div class="row"></div>
 			
 			

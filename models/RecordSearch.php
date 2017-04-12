@@ -189,6 +189,7 @@ class RecordSearch extends Record
 					$types['boolean'][] = [$column->name => $this->$cname];
 					break;
 				case Schema::TYPE_FLOAT:
+				case Schema::TYPE_DOUBLE:
 				case Schema::TYPE_DECIMAL:
 				case Schema::TYPE_MONEY:
 					$types['number'][] = [$column->name];

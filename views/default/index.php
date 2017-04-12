@@ -77,7 +77,7 @@
 		<div class="col-sm-3">
 			<h2>Data</h2>
 
-			<p>Manage and upload GIS data (shp,kml,gpx,geojson) to be used as layer.</p>
+			<p>Manage and upload GIS data (shp,kml,gpx,geojson,geotif) to be used as layer.</p>
 
 			<p><?= Html::a(Yii::t('app','Create Data'),['//iyo/data/create'],["class"=>"btn btn-warning"])?>
 			<?= Html::a(Yii::t('app','Manage Data'),['//iyo/data/index'],["class"=>"btn btn-primary"])?></p>
@@ -93,7 +93,7 @@
 		<div class="col-sm-3">			
 			<h2>Map</h2>
 
-			<p>Manage maps.</p>
+			<p>Manage maps. Defifne initial map extent and zoom, basemaps available to be used, and layers that included.</p>
 
 			<p><?= Html::a(Yii::t('app','Create Map'),['//iyo/map/create'],["class"=>"btn btn-warning"])?>
 			<?= Html::a(Yii::t('app','Manage Map'),['//iyo/map/index'],["class"=>"btn btn-primary"])?></p>		

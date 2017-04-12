@@ -41,6 +41,7 @@ $this->params['no-content-header'] = true;
 $this->beginBlock('STATIC_SCRIPTS');
 	
 	$content = $model->content;	
+	$content = str_replace(['&lt;','&gt;'],['<','>'],$content);
 	preg_match_all('/\{DATA id\:(\d+) query\:(.*) var\:([a-zA-Z0-9]+)\}/',$content,$matches);				
 	
 	if (count($matches[0]) > 0)
@@ -146,6 +147,11 @@ $this->beginBlock('STATIC_SCRIPTS');
 				if (isset($json['limit']))
 				{
 					$query->limit($json['limit']);
+				}
+				
+				if (isset($json['offset']))
+				{
+					$query->offset($json['offset']);
 				}
 				
 				try {

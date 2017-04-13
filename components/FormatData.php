@@ -770,7 +770,7 @@ class FormatData extends Component
 		{				
 			$file = \amilna\yap\Helpers::shellvar($file);			
 			
-			$gdalinfo = shell_exec("gdalinfo '".$file."'");
+			$gdalinfo = shell_exec($this->gdalinfo.' "'.$file.'" 2>&1');
 						
 			preg_match('/Lower Left([ ]+)\(([ ]+)?(-?[0-9\.]+),([ ]+)?(-?[0-9\.]+)\)/', $gdalinfo, $min);		
 			preg_match('/Upper Right([ ]+)\(([ ]+)?(-?[0-9\.]+),([ ]+)?(-?[0-9\.]+)\)/', $gdalinfo, $max);
@@ -832,14 +832,16 @@ class FormatData extends Component
 			$bfile = \amilna\yap\Helpers::shellvar($bfile);			
 			$file = \amilna\yap\Helpers::shellvar($file);			
 			
-			$ogr2shp = shell_exec("ogr2ogr -f 'ESRI Shapefile' -overwrite '".$bfile.".shp' '".$file."'");
+			$ogr2shp = shell_exec(str_replace('gdalinfo','ogr2ogr',$this->gdalinfo).' -f "ESRI Shapefile" -overwrite "'.$bfile.'.shp" "'.$file.'" 2>&1');
 						
 			$this->filename = $bfile.".shp";
 			$this->ext = ".shp";
 			$this->shpImport();
+			/*
 			$unlink = shell_exec("				
 				rm -R '".$bfile.".shp';				
 			");
+			*/ 
 									
 		}
 		else

@@ -356,62 +356,30 @@ class RecordController extends Controller
 						$srid = (empty($model->data->srid)?4326:$model->data->srid); //4326;
 											
 						$string = json_encode($coordinates);										
-						//echo $string."\n";												
 						
 						$string = str_replace(['null',''], ['0',''], $string);
 						$string = preg_replace(['/\[([e0-9\-\.]+),([e0-9\-\.]+)\]/'], ['$1 $2'], $string);
-						//$string = str_replace(['[',']'], ['(',')'], $string);
-						
-						/*
-						if ($rec['gid'] < 0)
-						{
-							die($string);
-						}
-						*/ 
-						
-						//echo $string."\n";
-						
+							
 						$string = preg_replace(['/\[([e0-9\-\.]+),([e0-9\-\.]+),([e0-9\-\.]+),([e0-9\-\.]+)\]/'], ['$1 $2'], $string);
 						$string = str_replace(['[',']'], ['(',')'], $string);
 						
-						
-																		
 						$string = $tipe.' '.$string;
 						
-						//die('tes '.$string);
+						//die('TES '.$string);
 						
 						$string = preg_replace(['/POINT ([e0-9\-\.]+) ([e0-9\-\.]+)/'], ['POINT ($1 $2)'], $string);
 						
+						$srid = intval($srid);
 						
 						$geom2 = $model->db->createCommand(
-								"SELECT (ST_Multi(ST_Transform(ST_GeomFromText(:val,4326),:srid))) as g"
+								"SELECT (ST_Multi(ST_Transform(ST_GeomFromText(:val,cast(4326 as integer)),cast(:srid as integer)))) as g"
 							)->bindValues([":val"=>$string,":srid"=>$srid])->queryScalar();
-						
-						/*
-						if ($rec['gid'] < 0)
-						{
-							die($string);
-						}
-						*/ 
 						
 							
 						$geom1 = $model->db->createCommand(
-								"SELECT (ST_Transform(ST_GeomFromText(:val,4326),:srid)) as g"
+								"SELECT (ST_Transform(ST_GeomFromText(:val,cast(4326 as integer)),cast(:srid as integer))) as g"
 							)->bindValues([":val"=>$string,":srid"=>$srid])->queryScalar();																
-							
-						
-						/*
-						$geom2 = $model->db->createCommand(
-								"SELECT (ST_Multi(ST_Transform(ST_Force2D(:val),:srid))) as g"
-							)->bindValues([":val"=>$string,":srid"=>$srid])->queryScalar();
-						
-							
-						$geom1 = $model->db->createCommand(
-								"SELECT (ST_Transform(ST_Force2D(:val),:srid)) as g"
-							)->bindValues([":val"=>$string,":srid"=>$srid])->queryScalar();
-						*/
-						//$geom2 = $geom1;	
-												
+													
 					}					
 					
 				}

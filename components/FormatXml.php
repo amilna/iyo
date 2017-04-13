@@ -20,7 +20,7 @@ class FormatXml extends Component
 	
 	public function __construct($dsn,$tablePrefix,$username,$password,$param)
 	{																
-		$params = explode(":",$param);
+		$params = explode("~",$param);
 		$layerid = $params[0];
 		$layername = $params[1];		
 		$geom_col = $params[2];

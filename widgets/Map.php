@@ -30,12 +30,13 @@ class Map extends Widget
 
     public function init()
     {        
+        
         parent::init();
         $view = $this->getView();				
 		$module = Yii::$app->getModule("iyo");
 		$user_id = Yii::$app->user->id;				
 				
-		$comDir = \Yii::getAlias('@amilna/iyo/components');
+		$comDir = str_replace('\\','/',\Yii::getAlias('@amilna/iyo/components'));
 		$tileURL = \Yii::getAlias($module->tileURL);
 		
 		$socks = [];
@@ -69,7 +70,8 @@ class Map extends Widget
 				{										
 					if ($socks[$port] === false)
 					{
-						$cmd = $module->python.' "'.$webpyFile.'" -x "'.$xmlDir.'" -d "'.$webDir.'" -t "'.$tileDir.'" -a "'.$ipaddr.'" -p "'.$port.'" -T "'.$tileURL.'" -E "'.$execFile.'" -D "'.$dbdsn.'" -P '.$dbpfx.' -U '.$dbusr.' -W '.$dbpwd.'  -G '.$geomCol.' -c "'.$module->maxZoomCache.'" '.(!empty($module->sslKey)?'-K "'.$module->sslKey.'"':'').' '.(!empty($module->sslCert)?'-C "'.$module->sslCert.'"':'');
+						$cmd = $module->python.' "'.$webpyFile.'" -x "'.$xmlDir.'" -d "'.$webDir.'" -t "'.$tileDir.'" -a "'.$ipaddr.'" -p "'.$port.'" -T "'.$tileURL.'" -H "'.$module->php.'" -E "'.$execFile.'" -D "'.$dbdsn.'" -P "'.$dbpfx.'" -U "'.$dbusr.'" -W "'.$dbpwd.'"  -G "'.$geomCol.'" -c "'.$module->maxZoomCache.'" '.(!empty($module->sslKey)?'-K "'.$module->sslKey.'"':'').' '.(!empty($module->sslCert)?'-C "'.$module->sslCert.'"':'');
+						$cmd = str_replace("\\",'/',$cmd);
 						$process = new Process($cmd);
 					}
 				}				
@@ -142,7 +144,8 @@ class Map extends Widget
 					if ($layer)
 					{																	
 						$this->options['layers'][$i]['name'] = isset($this->options['layers'][$i]['name'])?$this->options['layers'][$i]['name']:$layer->title;	
-						$gtype = Data::itemAlias("geomtype",$layer->data->type);	
+						$data = new Data();
+						$gtype = $data->itemAlias("geomtype",$layer->data->type);	
 						
 						if ($layer->data->type == 6)
 						{

@@ -32,7 +32,7 @@ class FormatTile extends Component
 	
 	public function __construct($dsn,$tablePrefix,$username,$password,$param)
 	{																
-		$params = explode(":",$param);
+		$params = explode("~",$param);
 		$this->tileURL = \Yii::getAlias($params[0]);
 		$this->id = $params[1];		
 		$this->isdata = $params[2];
@@ -165,8 +165,8 @@ class FormatTile extends Component
 						$dir .= "/".$z."/".$x."/".$y;
 					}			
 					
-					$dir = \amilna\yap\Helpers::shellvar($dir);				
-					shell_exec("rm -R ".$dir);	
+					$dir = \amilna\yap\Helpers::shellvar($dir);
+					\amilna\yap\Helpers::removeDirectory($dir);				
 				}
 			}
 		}		

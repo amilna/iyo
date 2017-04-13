@@ -265,9 +265,11 @@ class Tilep extends Component
 		$username = Yii::$app->db->username;
 		$password = Yii::$app->db->password;					
 		
-		$param = $tileURL.":".$id.":".$isdata.":".$z.":".$x.":".$y.":".$xml.":".$tileDir.":".$tileServer.":".$proxyhosts.":".$ports.":".$ipaddress.":".$sslKey.":".$bbox;
-		$path = \Yii::getAlias("@amilna/iyo/components");			
-		$cmd = $path."/exec -action='clearTile' -dsn='".$dsn."' -tablePrefix='".$tablePrefix."' -username='".$username."' -password='".$password."' -param='".$param."'";
+		$param = $tileURL."~".$id."~".$isdata."~".$z."~".$x."~".$y."~".$xml."~".$tileDir."~".$tileServer."~".$proxyhosts."~".$ports."~".$ipaddress."~".$sslKey."~".$bbox;
+		$path = \Yii::getAlias("@amilna/iyo/components");
+		
+		$execFile = \Yii::getAlias($module->execFile);
+		$cmd = $module->php.' "'.$execFile.'" -action="clearTile" -dsn="'.$dsn.'" -tablePrefix="'.$tablePrefix.'" -username="'.$username.'" -password="'.$password.'" -param="'.$param.'"';
 		//die($cmd);			
 		$process = new Process($cmd);
 				

@@ -33,8 +33,9 @@ dbpwd = "postgres"
 geomCol = "the_geom"
 sslCert = False
 sslKey = False
+phpFile = "php"
 execFile = "@amilna/yii2-iyo/components/exec"
-web.config.debug = False
+web.config.debug = True
 
 def main(argv):		
 	global ip
@@ -50,18 +51,19 @@ def main(argv):
 	global geomCol
 	global sslCert
 	global sslKey
+	global phpFile
 	global execFile
 	global tileURL
 		   
 	try:
-		opts, args = getopt.getopt(argv,"ha:p:d:x:c:t:D:P:U:W:G:C:K:E:T:",["ipAddress","port","webDir","xmlDir","zoomCache","tileURL","dsn","tablePrefix","username","password","geomCol","sslCert","sslkey","execFile","tileURL"])
+		opts, args = getopt.getopt(argv,"ha:p:d:x:c:t:D:P:U:W:G:C:K:H:E:T:",["ipAddress","port","webDir","xmlDir","zoomCache","tileURL","dsn","tablePrefix","username","password","geomCol","sslCert","sslkey","phpFile","execFile","tileURL"])
 	except getopt.GetoptError:
-		print 'webtilep.py -a <ipAddress> -p <port> -d <webDir> -x <xmlDir> -c <zoomCache> -t <tiledir> -D <dsn> -P <tablePrefix> -U <username> -W <password> -G <geomCol> -C <sslCert> -K <sslKey> -E <execFile> -T <tileURL>'
+		print 'webtilep.py -a <ipAddress> -p <port> -d <webDir> -x <xmlDir> -c <zoomCache> -t <tiledir> -D <dsn> -P <tablePrefix> -U <username> -W <password> -G <geomCol> -C <sslCert> -K <sslKey> -H <phpFile> -E <execFile> -T <tileURL>'
 		sys.exit(2)	  	
 	  
 	for opt, arg in opts:
 		if opt == '-h':
-			print 'webtilep.py -a <ipAddress> -p <port> -d <webDir> -x <xmlDir> -c <zoomCache> -t <tiledir> -D <dsn> -P <tablePrefix> -U <username> -W <password> -G <geomCol> -C <sslCert> -K <sslKey> -E <execFile> -T <tileURL>'
+			print 'webtilep.py -a <ipAddress> -p <port> -d <webDir> -x <xmlDir> -c <zoomCache> -t <tiledir> -D <dsn> -P <tablePrefix> -U <username> -W <password> -G <geomCol> -C <sslCert> -K <sslKey> -H <phpFile> -E <execFile> -T <tileURL>'
 			sys.exit()
 		elif opt in ("-a", "--ipAddress"):
 			ip = arg			
@@ -90,12 +92,13 @@ def main(argv):
 		elif opt in ("-C", "--sslCert"):
 			sslCert = arg		
 		elif opt in ("-K", "--sslKey"):
-			sslKey = arg			
+			sslKey = arg		
+		elif opt in ("-H", "--phpFile"):
+			phpFile = arg				
 		elif opt in ("-E", "--execFile"):
-			execFile = arg		
+			execFile = arg			
 		elif opt in ("-T", "--tileURL"):
 			tileURL = arg	
-				
 					
 	urls = (		
 		tileURL+'/([a-zA-Z0-9_]+)', 'clear_tile',
@@ -283,7 +286,8 @@ class Tilep:
 								pre = ''
 							layName = layName+pre+ts[n]															
 																	
-					p = Popen([execFile,"-action=getXml","-dsn="+dbdsn,"-tablePrefix="+dbpfx,"-username="+dbusr,"-password="+dbpwd,"-param="+layId+":"+layName+":"+geomCol+":1:"+webdir], stdin=PIPE, stdout=PIPE, stderr=PIPE)
+					p = Popen([phpFile,execFile,"-action=getXml","-dsn="+dbdsn,"-tablePrefix="+dbpfx,"-username="+dbusr,"-password="+dbpwd,"-param="+layId+"~"+layName+"~"+geomCol+"~1~"+webdir], stdin=PIPE, stdout=PIPE, stderr=PIPE)
+					
 					xoutput, err = p.communicate(b"input data that is passed to subprocess' stdin")											
 					if xoutput[:5] == '<Map ':
 						xmlstr = xoutput
@@ -322,7 +326,8 @@ class clear_tile:
 		tilep = Tilep()
 				
 		if qs.r != '' :						
-			adir = os.path.dirname(os.path.realpath(__file__))+'/dbs/'					
+			adir = os.path.dirname(os.path.realpath(__file__))+'/dbs/'		
+			adir = adir.replace('\\','/')			
 			dst = adir+tilename+'.db'			
 			itesl = None			
 			if not os.path.exists(dst):
@@ -342,11 +347,12 @@ class clear_tile:
 			for d in range(0, ndb): 
 				dbfilet = dbfilets[d]			
 				if qs.b == '':			
-					from subprocess import call
-					call(["rm","-R",tiledir+"/"+tilename])				
+					shutil.rmtree(tiledir+"/"+tilename,ignore_errors=True)					
+					#from subprocess import call
+					#call(["rm","-R",tiledir+"/"+tilename])				
 					if dbfilet :
-						call(["rm",dbfilet])
-								
+						os.unlink(dbfilet)
+						#call(["rm",dbfilet])
 				else :						
 					boxs = qs.b.split(",")
 					minx = float(boxs[0])		

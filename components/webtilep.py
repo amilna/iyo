@@ -35,7 +35,7 @@ sslCert = False
 sslKey = False
 phpFile = "php"
 execFile = "@amilna/yii2-iyo/components/exec"
-web.config.debug = True
+web.config.debug = False
 
 def main(argv):		
 	global ip

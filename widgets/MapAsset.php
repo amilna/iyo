@@ -12,7 +12,8 @@ class MapAsset extends AssetBundle
         'forceCopy' => YII_DEBUG,
     ];
     
-    public $css = [        
+    public $css = [    
+		'//maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css',	
         'css/map.css',               
         'css/ol.css',               
     ];
